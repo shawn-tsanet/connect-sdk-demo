@@ -1,6 +1,6 @@
 package com.tsanet.clientdemo;
 
-import com.tsanet.clientdemo.app.ConsoleShellRunner;
+import com.tsanet.clientdemo.TsaNetClientDemoApplication;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.builder.SpringApplicationBuilder;

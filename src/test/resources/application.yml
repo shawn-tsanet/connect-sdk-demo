@@ -1,0 +1,6 @@
+crash:
+  enabled: false
+
+app:
+  storage:
+    sqlite-path: "target/test-data.db"

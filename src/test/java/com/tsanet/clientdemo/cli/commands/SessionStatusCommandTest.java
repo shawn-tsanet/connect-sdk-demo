@@ -3,6 +3,7 @@ package com.tsanet.clientdemo.cli.commands;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
+import com.tsanet.clientdemo.cli.CliRunContext;
 import com.tsanet.clientdemo.connectapi.ConnectApiClient;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
@@ -17,11 +18,13 @@ import org.mockito.Mockito;
 class SessionStatusCommandTest {
     private final PrintStream originalOut = System.out;
     private ByteArrayOutputStream output;
+    private CliRunContext cliRunContext;
 
     @BeforeEach
     void setUp() {
         output = new ByteArrayOutputStream();
         System.setOut(new PrintStream(output, true, StandardCharsets.UTF_8));
+        cliRunContext = new CliRunContext();
     }
 
     @AfterEach
@@ -32,7 +35,7 @@ class SessionStatusCommandTest {
     @Test
     void itPrintsLoggedInStateWhenAuthorized() {
         ConnectApiClient connectApiClient = Mockito.mock(ConnectApiClient.class);
-        SessionStatusCommand command = new SessionStatusCommand(connectApiClient);
+        SessionStatusCommand command = new SessionStatusCommand(connectApiClient, cliRunContext);
         when(connectApiClient.isAuthorized()).thenReturn(true);
         when(connectApiClient.currentUsername()).thenReturn(Optional.of("demo"));
 
@@ -42,9 +45,23 @@ class SessionStatusCommandTest {
     }
 
     @Test
+    void itPrintsPlainSessionOutputInBatchMode() {
+        cliRunContext.configure(true, true);
+        ConnectApiClient connectApiClient = Mockito.mock(ConnectApiClient.class);
+        SessionStatusCommand command = new SessionStatusCommand(connectApiClient, cliRunContext);
+        when(connectApiClient.isAuthorized()).thenReturn(true);
+        when(connectApiClient.currentUsername()).thenReturn(Optional.of("demo"));
+
+        command.execute(new String[0], new Scanner(""));
+
+        assertThat(output.toString(StandardCharsets.UTF_8)).contains("authorized: true");
+        assertThat(output.toString(StandardCharsets.UTF_8)).contains("username: demo");
+    }
+
+    @Test
     void itPrintsNotLoggedInStateWhenUnauthorized() {
         ConnectApiClient connectApiClient = Mockito.mock(ConnectApiClient.class);
-        SessionStatusCommand command = new SessionStatusCommand(connectApiClient);
+        SessionStatusCommand command = new SessionStatusCommand(connectApiClient, cliRunContext);
         when(connectApiClient.isAuthorized()).thenReturn(false);
 
         command.execute(new String[0], new Scanner(""));

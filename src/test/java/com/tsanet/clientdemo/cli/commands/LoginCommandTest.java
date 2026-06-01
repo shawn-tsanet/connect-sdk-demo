@@ -5,6 +5,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.tsanet.clientdemo.cli.CliRunContext;
 import com.tsanet.clientdemo.connectapi.ConnectApiClient;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -20,11 +21,13 @@ import org.mockito.Mockito;
 class LoginCommandTest {
     private final PrintStream originalOut = System.out;
     private ByteArrayOutputStream output;
+    private CliRunContext cliRunContext;
 
     @BeforeEach
     void setUp() {
         output = new ByteArrayOutputStream();
         System.setOut(new PrintStream(output, true, StandardCharsets.UTF_8));
+        cliRunContext = new CliRunContext();
     }
 
     @AfterEach
@@ -35,7 +38,7 @@ class LoginCommandTest {
     @Test
     void itCallsConnectApiClientWhenLoginSucceeds() {
         ConnectApiClient connectApiClient = Mockito.mock(ConnectApiClient.class);
-        LoginCommand command = new LoginCommand(connectApiClient);
+        LoginCommand command = new LoginCommand(connectApiClient, cliRunContext);
 
         when(connectApiClient.isAuthorized()).thenReturn(false);
         when(connectApiClient.login("demo", "secret")).thenReturn("token-123");
@@ -52,7 +55,7 @@ class LoginCommandTest {
     @Test
     void itSkipsLoginWhenAlreadyAuthorized() {
         ConnectApiClient connectApiClient = Mockito.mock(ConnectApiClient.class);
-        LoginCommand command = new LoginCommand(connectApiClient);
+        LoginCommand command = new LoginCommand(connectApiClient, cliRunContext);
 
         when(connectApiClient.isAuthorized()).thenReturn(true);
         when(connectApiClient.currentUsername()).thenReturn(Optional.of("demo"));
@@ -68,7 +71,7 @@ class LoginCommandTest {
     @Test
     void itPrintsFailureWhenLoginThrows() {
         ConnectApiClient connectApiClient = Mockito.mock(ConnectApiClient.class);
-        LoginCommand command = new LoginCommand(connectApiClient);
+        LoginCommand command = new LoginCommand(connectApiClient, cliRunContext);
 
         when(connectApiClient.isAuthorized()).thenReturn(false);
         when(connectApiClient.login("demo", "secret")).thenThrow(new RuntimeException("bad credentials"));
@@ -80,6 +83,20 @@ class LoginCommandTest {
 
         verify(connectApiClient).login("demo", "secret");
         assertThat(outputAsString()).contains("Login failed: bad credentials");
+    }
+
+    @Test
+    void itLogsInWithBatchArguments() {
+        cliRunContext.configure(true, true);
+        ConnectApiClient connectApiClient = Mockito.mock(ConnectApiClient.class);
+        LoginCommand command = new LoginCommand(connectApiClient, cliRunContext);
+
+        when(connectApiClient.login("demo", "secret")).thenReturn("token-123");
+
+        command.execute(new String[] {"demo", "secret"}, new Scanner(""));
+
+        verify(connectApiClient).login("demo", "secret");
+        assertThat(outputAsString()).contains("logged in as: demo");
     }
 
     private String outputAsString() {

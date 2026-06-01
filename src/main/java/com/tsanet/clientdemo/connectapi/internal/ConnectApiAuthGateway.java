@@ -1,37 +1,24 @@
 package com.tsanet.clientdemo.connectapi.internal;
 
-import com.tsanet.clientdemo.config.ApiProperties;
-import org.springframework.http.MediaType;
+import com.tsanet.clientdemo.generated.api.IdentityApi;
+import com.tsanet.clientdemo.generated.model.LoginRequestDTO;
+import com.tsanet.clientdemo.generated.model.TokenDTO;
 import org.springframework.stereotype.Component;
-import org.springframework.web.client.RestClient;
 
 @Component
 public class ConnectApiAuthGateway {
-    private final RestClient restClient;
-    private final ApiProperties apiProperties;
+    private final IdentityApi identityApi;
 
-    public ConnectApiAuthGateway(ApiProperties apiProperties, RestClient.Builder restClientBuilder) {
-        this.apiProperties = apiProperties;
-        this.restClient = restClientBuilder.baseUrl(apiProperties.baseUrl()).build();
+    public ConnectApiAuthGateway(IdentityApi identityApi) {
+        this.identityApi = identityApi;
     }
 
     public String login(String username, String password) {
-        LoginResponse response = restClient.post()
-            .uri(apiProperties.loginPath())
-            .contentType(MediaType.APPLICATION_JSON)
-            .body(new LoginRequest(username, password))
-            .retrieve()
-            .body(LoginResponse.class);
-
-        if (response == null || response.accessToken() == null || response.accessToken().isBlank()) {
+        LoginRequestDTO request = new LoginRequestDTO().username(username).password(password);
+        TokenDTO response = identityApi.login(request);
+        if (response == null || response.getAccessToken() == null || response.getAccessToken().isBlank()) {
             throw new IllegalStateException("Login succeeded but accessToken is missing");
         }
-        return response.accessToken();
-    }
-
-    private record LoginRequest(String username, String password) {
-    }
-
-    private record LoginResponse(String accessToken, String tokenType, Integer expiresIn) {
+        return response.getAccessToken();
     }
 }

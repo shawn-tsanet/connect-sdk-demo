@@ -5,6 +5,7 @@ import static com.tsanet.clientdemo.cli.TerminalColors.RED;
 import static com.tsanet.clientdemo.cli.TerminalColors.RESET;
 import static com.tsanet.clientdemo.cli.TerminalColors.YELLOW;
 
+import com.tsanet.clientdemo.cli.CliRunContext;
 import com.tsanet.clientdemo.connectapi.ConnectApiClient;
 import java.util.Scanner;
 import org.springframework.stereotype.Component;
@@ -12,9 +13,11 @@ import org.springframework.stereotype.Component;
 @Component
 public class LoginCommand implements Command {
     private final ConnectApiClient connectApiClient;
+    private final CliRunContext cliRunContext;
 
-    public LoginCommand(ConnectApiClient connectApiClient) {
+    public LoginCommand(ConnectApiClient connectApiClient, CliRunContext cliRunContext) {
         this.connectApiClient = connectApiClient;
+        this.cliRunContext = cliRunContext;
     }
 
     @Override
@@ -29,9 +32,14 @@ public class LoginCommand implements Command {
 
     @Override
     public void execute(String[] args, Scanner scanner) {
+        if (args.length >= 2) {
+            login(args[0], args[1]);
+            return;
+        }
+
         if (connectApiClient.isAuthorized()) {
             String username = connectApiClient.currentUsername().orElse("unknown");
-            System.out.println(YELLOW + "Already logged in as " + username + RESET);
+            println(YELLOW, "Already logged in as " + username);
             return;
         }
 
@@ -39,12 +47,27 @@ public class LoginCommand implements Command {
         String username = scanner.nextLine().trim();
         System.out.print("Password: ");
         String password = scanner.nextLine();
+        login(username, password);
+    }
 
+    private void login(String username, String password) {
         try {
             connectApiClient.login(username, password);
-            System.out.println(GREEN + "Login successful. Session ready." + RESET);
+            if (cliRunContext.isPlainOutput()) {
+                System.out.println("logged in as: " + username);
+                return;
+            }
+            println(GREEN, "Login successful. Session ready.");
         } catch (Exception ex) {
-            System.out.println(RED + "Login failed: " + ex.getMessage() + RESET);
+            println(RED, "Login failed: " + ex.getMessage());
         }
+    }
+
+    private void println(String color, String message) {
+        if (cliRunContext.isPlainOutput()) {
+            System.out.println(message);
+            return;
+        }
+        System.out.println(color + message + RESET);
     }
 }
