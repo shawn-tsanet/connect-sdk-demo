@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 _tsa_demo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-_tsa_crash_props="${_tsa_demo_root}/src/main/resources/tsanet-demo-crash-ssh.properties"
+_tsa_crash_props="${_tsa_demo_root}/TSANet-integration-app/src/main/resources/tsanet-demo-crash-ssh.properties"
 if [[ -f "${_tsa_crash_props}" ]]; then
   _uline="$(grep -E '^crash\.auth-username=' "${_tsa_crash_props}" | tail -1 || true)"
   if [[ -n "${_uline}" ]]; then

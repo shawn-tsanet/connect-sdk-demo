@@ -1,0 +1,6 @@
+tsanet:
+  demo:
+    setup:
+      enabled: false
+  scenarios:
+    run-on-startup: false
