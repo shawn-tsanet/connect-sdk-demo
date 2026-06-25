@@ -42,6 +42,18 @@ public class ConnectApiCollaborationGateway {
         return requests;
     }
 
+    public CollaborationRequestStatusDto getCollaborationRequestByToken(String caseToken) {
+        sessionStore.getBearerToken().orElseThrow(() -> new IllegalStateException("Not logged in"));
+
+        CollaborationRequestStatusDTO body = collaborationRequestsApi.getCollaborationRequestByToken(caseToken, false);
+        if (body == null) {
+            throw new IllegalStateException("Collaboration request token=" + caseToken + " not found");
+        }
+        CollaborationRequestStatusDto request = toDto(body);
+        storageService.storeFetched(List.of(request));
+        return request;
+    }
+
     public CollaborationRequestStatusDto createCollaborationRequest(
         com.tsanet.api.generated.model.CollaborationRequestDTO request
     ) {

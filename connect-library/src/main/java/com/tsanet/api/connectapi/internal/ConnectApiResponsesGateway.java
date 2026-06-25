@@ -3,11 +3,17 @@ package com.tsanet.api.connectapi.internal;
 import static com.tsanet.api.connectapi.internal.OpenApiMapping.dateTime;
 import static com.tsanet.api.connectapi.internal.OpenApiMapping.enumValue;
 
+import com.tsanet.api.connectapi.CaseInformationRequestValidation;
+import com.tsanet.api.connectapi.CaseInformationResponseValidation;
+import com.tsanet.api.connectapi.CaseRejectionValidation;
 import com.tsanet.api.connectapi.dto.CaseResponseDto;
 import com.tsanet.api.connectapi.dto.CollaborationRequestStatusDto;
 import com.tsanet.api.generated.api.CaseResponsesApi;
 import com.tsanet.api.generated.api.CollaborationRequestsApi;
 import com.tsanet.api.generated.model.CaseApprovalDTO;
+import com.tsanet.api.generated.model.CaseInformationRequestDTO;
+import com.tsanet.api.generated.model.CaseInformationResponseDTO;
+import com.tsanet.api.generated.model.CaseRejectionDTO;
 import com.tsanet.api.generated.model.CaseResponseDTO;
 import com.tsanet.api.generated.model.CollaborationRequestStatusDTO;
 import com.tsanet.api.storage.CaseResponseStorageService;
@@ -75,6 +81,115 @@ public class ConnectApiResponsesGateway {
         collaborationStorageService.storeFetched(List.of(approved));
         getResponses(caseToken);
         return approved;
+    }
+
+    public CollaborationRequestStatusDto closeCollaborationRequest(String caseToken) {
+        requireLogin();
+
+        CollaborationRequestStatusDTO body = caseResponsesApi.closeCollaborationRequest(caseToken);
+        if (body == null) {
+            throw new IllegalStateException("Close collaboration request returned empty response");
+        }
+
+        CollaborationRequestStatusDto closed = toCollaborationRequestDto(body);
+        collaborationStorageService.storeFetched(List.of(closed));
+        getResponses(caseToken);
+        return closed;
+    }
+
+    public CollaborationRequestStatusDto rejectCollaborationRequest(
+        String caseToken,
+        String engineerName,
+        String engineerEmail,
+        String engineerPhone,
+        String reason
+    ) {
+        requireLogin();
+
+        CaseRejectionValidation.ValidationResult validation =
+            CaseRejectionValidation.validate(engineerName, engineerEmail, engineerPhone, reason);
+        if (!validation.valid()) {
+            throw new IllegalArgumentException(validation.message());
+        }
+
+        CaseRejectionDTO rejection = new CaseRejectionDTO();
+        rejection.setEngineerName(engineerName.strip());
+        rejection.setEngineerEmail(engineerEmail.strip());
+        rejection.setReason(reason.strip());
+        if (engineerPhone != null && !engineerPhone.isBlank()) {
+            rejection.setEngineerPhone(engineerPhone.strip());
+        }
+
+        CollaborationRequestStatusDTO body = caseResponsesApi.rejectCollaborationRequest(caseToken, rejection);
+        if (body == null) {
+            throw new IllegalStateException("Reject collaboration request returned empty response");
+        }
+
+        CollaborationRequestStatusDto rejected = toCollaborationRequestDto(body);
+        collaborationStorageService.storeFetched(List.of(rejected));
+        getResponses(caseToken);
+        return rejected;
+    }
+
+    public CollaborationRequestStatusDto submitInformationRequest(
+        String caseToken,
+        String engineerName,
+        String engineerEmail,
+        String engineerPhone,
+        String requestedInformation
+    ) {
+        requireLogin();
+
+        CaseInformationRequestValidation.ValidationResult validation = CaseInformationRequestValidation.validate(
+            engineerName,
+            engineerEmail,
+            engineerPhone,
+            requestedInformation
+        );
+        if (!validation.valid()) {
+            throw new IllegalArgumentException(validation.message());
+        }
+
+        CaseInformationRequestDTO request = new CaseInformationRequestDTO();
+        request.setEngineerName(engineerName.strip());
+        request.setEngineerEmail(engineerEmail.strip());
+        request.setRequestedInformation(requestedInformation.strip());
+        if (engineerPhone != null && !engineerPhone.isBlank()) {
+            request.setEngineerPhone(engineerPhone.strip());
+        }
+
+        CollaborationRequestStatusDTO body = caseResponsesApi.submitInformationRequest(caseToken, request);
+        if (body == null) {
+            throw new IllegalStateException("Submit information request returned empty response");
+        }
+
+        CollaborationRequestStatusDto updated = toCollaborationRequestDto(body);
+        collaborationStorageService.storeFetched(List.of(updated));
+        getResponses(caseToken);
+        return updated;
+    }
+
+    public CollaborationRequestStatusDto submitInformationResponse(String caseToken, String requestedInformation) {
+        requireLogin();
+
+        CaseInformationResponseValidation.ValidationResult validation =
+            CaseInformationResponseValidation.validate(requestedInformation);
+        if (!validation.valid()) {
+            throw new IllegalArgumentException(validation.message());
+        }
+
+        CaseInformationResponseDTO response = new CaseInformationResponseDTO();
+        response.setRequestedInformation(requestedInformation.strip());
+
+        CollaborationRequestStatusDTO body = caseResponsesApi.submitInformationResponse(caseToken, response);
+        if (body == null) {
+            throw new IllegalStateException("Submit information response returned empty response");
+        }
+
+        CollaborationRequestStatusDto updated = toCollaborationRequestDto(body);
+        collaborationStorageService.storeFetched(List.of(updated));
+        getResponses(caseToken);
+        return updated;
     }
 
     private CaseResponseDto toDto(CaseResponseDTO dto, String caseToken) {

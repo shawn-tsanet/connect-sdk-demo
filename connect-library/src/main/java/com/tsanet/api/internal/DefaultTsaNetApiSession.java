@@ -6,18 +6,25 @@ import com.tsanet.api.connectapi.dto.AttachmentConfigDto;
 import com.tsanet.api.connectapi.dto.AttachmentForwardResultDto;
 import com.tsanet.api.connectapi.dto.CaseNoteDto;
 import com.tsanet.api.connectapi.dto.CaseResponseDto;
+import com.tsanet.api.connectapi.CollaborationRequestFormValidation;
 import com.tsanet.api.connectapi.dto.CollaborationRequestFormDto;
+import com.tsanet.api.connectapi.dto.CollaborationRequestFormTemplateDto;
 import com.tsanet.api.connectapi.dto.CollaborationRequestStatusDto;
 import com.tsanet.api.connectapi.dto.PartnerSelectionDto;
 import com.tsanet.api.connectapi.dto.UserContextDto;
+import com.tsanet.api.connectapi.dto.NormalizedHttpsAttachmentConfigDto;
 import com.tsanet.api.connectapi.dto.StoredAttachmentConfigDto;
 import com.tsanet.api.connectapi.dto.StoredAttachmentForwardResultDto;
+import com.tsanet.api.connectapi.dto.WebhookDeliveryPageDto;
+import com.tsanet.api.connectapi.dto.WebhookInboundEventDto;
+import com.tsanet.api.connectapi.dto.WebhookInboundResultDto;
 import com.tsanet.api.connectapi.dto.WebhookSubscriptionDto;
 import com.tsanet.api.connectapi.dto.WebhookSubscriptionResponseDto;
 import com.tsanet.api.connectapi.internal.ConnectApiAttachmentsGateway;
 import com.tsanet.api.connectapi.internal.ConnectApiAuthGateway;
 import com.tsanet.api.connectapi.internal.ConnectApiCollaborationGateway;
 import com.tsanet.api.connectapi.internal.ConnectApiFormGateway;
+import com.tsanet.api.connectapi.internal.FormTemplateMapper;
 import com.tsanet.api.connectapi.internal.ConnectApiNotesGateway;
 import com.tsanet.api.connectapi.internal.ConnectApiPartnersGateway;
 import com.tsanet.api.connectapi.internal.ConnectApiResponsesGateway;
@@ -42,11 +49,14 @@ import com.tsanet.api.storage.CollaborationRequestFormStorageService;
 import com.tsanet.api.storage.CollaborationRequestStorageService;
 import com.tsanet.api.storage.PartnerSelectionStorageService;
 import com.tsanet.api.storage.UserContextStorageService;
+import com.tsanet.api.storage.WebhookInboundEventStorageService;
 import com.tsanet.api.storage.WebhookSubscriptionStorageService;
+import com.tsanet.api.webhook.WebhookInboundService;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 final class DefaultTsaNetApiSession implements TsaNetApiSession, AuthFacade, CollaborationRequestsFacade,
@@ -69,6 +79,8 @@ final class DefaultTsaNetApiSession implements TsaNetApiSession, AuthFacade, Col
     private final CaseResponseStorageService caseResponseStorageService;
     private final UserContextStorageService userContextStorageService;
     private final WebhookSubscriptionStorageService webhookSubscriptionStorageService;
+    private final WebhookInboundEventStorageService webhookInboundEventStorageService;
+    private final WebhookInboundService webhookInboundService;
     private final PartnerSelectionStorageService partnerSelectionStorageService;
     private final AttachmentConfigStorageService attachmentConfigStorageService;
     private final AttachmentForwardResultStorageService attachmentForwardResultStorageService;
@@ -91,6 +103,7 @@ final class DefaultTsaNetApiSession implements TsaNetApiSession, AuthFacade, Col
         CaseResponseStorageService caseResponseStorageService,
         UserContextStorageService userContextStorageService,
         WebhookSubscriptionStorageService webhookSubscriptionStorageService,
+        WebhookInboundEventStorageService webhookInboundEventStorageService,
         PartnerSelectionStorageService partnerSelectionStorageService,
         AttachmentConfigStorageService attachmentConfigStorageService,
         AttachmentForwardResultStorageService attachmentForwardResultStorageService
@@ -112,6 +125,14 @@ final class DefaultTsaNetApiSession implements TsaNetApiSession, AuthFacade, Col
         this.caseResponseStorageService = caseResponseStorageService;
         this.userContextStorageService = userContextStorageService;
         this.webhookSubscriptionStorageService = webhookSubscriptionStorageService;
+        this.webhookInboundEventStorageService = webhookInboundEventStorageService;
+        this.webhookInboundService = new WebhookInboundService(
+            webhookSubscriptionStorageService,
+            webhookInboundEventStorageService,
+            collaborationGateway,
+            notesGateway,
+            this::ensureAuthenticatedForWebhook
+        );
         this.partnerSelectionStorageService = partnerSelectionStorageService;
         this.attachmentConfigStorageService = attachmentConfigStorageService;
         this.attachmentForwardResultStorageService = attachmentForwardResultStorageService;
@@ -210,8 +231,32 @@ final class DefaultTsaNetApiSession implements TsaNetApiSession, AuthFacade, Col
 
     @Override
     public CollaborationRequestFormDto getCreateForm(long receiverCompanyId) {
+        return getCreateFormByCompanyId(receiverCompanyId).toStoredMetadata(receiverCompanyId);
+    }
+
+    @Override
+    public CollaborationRequestFormTemplateDto getCreateFormByCompanyId(long receiverCompanyId) {
         CollaborationRequestDTO form = formGateway.getFormByCompanyId(receiverCompanyId);
-        return storeFormMetadata(receiverCompanyId, form);
+        CollaborationRequestFormTemplateDto template = FormTemplateMapper.toTemplate(form, receiverCompanyId, null);
+        collaborationRequestFormStorageService.storeFetched(template.toStoredMetadata(receiverCompanyId));
+        return template;
+    }
+
+    @Override
+    public CollaborationRequestFormTemplateDto getCreateFormByDepartmentId(long departmentId) {
+        CollaborationRequestDTO form = formGateway.getFormByDepartmentId(departmentId);
+        CollaborationRequestFormTemplateDto template = FormTemplateMapper.toTemplate(form, null, departmentId);
+        long storageKey = template.receiverCompanyId() != null ? template.receiverCompanyId() : departmentId;
+        collaborationRequestFormStorageService.storeFetched(template.toStoredMetadata(storageKey));
+        return template;
+    }
+
+    @Override
+    public CollaborationRequestFormTemplateDto getCreateFormByDocumentId(long documentId) {
+        CollaborationRequestDTO form = formGateway.getFormByDocumentId(documentId);
+        CollaborationRequestFormTemplateDto template = FormTemplateMapper.toTemplate(form, null, null);
+        collaborationRequestFormStorageService.storeFetched(template.toStoredMetadata(documentId));
+        return template;
     }
 
     @Override
@@ -225,14 +270,62 @@ final class DefaultTsaNetApiSession implements TsaNetApiSession, AuthFacade, Col
     }
 
     @Override
+    public List<CollaborationRequestFormDto> listStoredFormsForDocument(long documentId) {
+        return collaborationRequestFormStorageService.findByDocumentId(documentId);
+    }
+
+    @Override
     public CollaborationRequestStatusDto createRequest(
         long receiverCompanyId,
         String caseNumber,
         String summary,
         String description
     ) {
-        CollaborationRequestDTO form = formGateway.getFormByCompanyId(receiverCompanyId);
-        storeFormMetadata(receiverCompanyId, form);
+        CollaborationRequestFormTemplateDto template = getCreateFormByCompanyId(receiverCompanyId);
+        return createRequest(template, caseNumber, summary, description, Collections.emptyMap());
+    }
+
+    @Override
+    public CollaborationRequestStatusDto createRequest(
+        CollaborationRequestFormTemplateDto formTemplate,
+        String caseNumber,
+        String summary,
+        String description,
+        Map<Long, String> customFieldValues
+    ) {
+        CollaborationRequestDTO form = formGateway.getFormByDocumentId(formTemplate.documentId());
+        long storageCompanyId = formTemplate.receiverCompanyId() != null
+            ? formTemplate.receiverCompanyId()
+            : formTemplate.departmentId() != null ? formTemplate.departmentId() : formTemplate.documentId();
+        return createFromForm(
+            form,
+            storageCompanyId,
+            formTemplate.departmentId(),
+            caseNumber,
+            summary,
+            description,
+            customFieldValues
+        );
+    }
+
+    private CollaborationRequestStatusDto createFromForm(
+        CollaborationRequestDTO form,
+        long storageCompanyId,
+        Long departmentId,
+        String caseNumber,
+        String summary,
+        String description,
+        Map<Long, String> customFieldValues
+    ) {
+        storeFormMetadata(storageCompanyId, departmentId, form);
+        FormTemplateMapper.applyCustomFieldValues(form, customFieldValues);
+
+        CollaborationRequestFormValidation.ValidationResult validation =
+            CollaborationRequestFormValidation.validateRequiredApiFields(form.getCustomFields());
+        if (!validation.valid()) {
+            throw new IllegalArgumentException(validation.message());
+        }
+
         form.setInternalCaseNumber(caseNumber);
         form.setProblemSummary(summary);
         form.setProblemDescription(description);
@@ -247,6 +340,11 @@ final class DefaultTsaNetApiSession implements TsaNetApiSession, AuthFacade, Col
             form.setInternalNotes(Collections.emptyList());
         }
         return collaborationGateway.createCollaborationRequest(form);
+    }
+
+    @Override
+    public CollaborationRequestStatusDto fetchRequestByToken(String caseToken) {
+        return collaborationGateway.getCollaborationRequestByToken(caseToken);
     }
 
     @Override
@@ -322,6 +420,50 @@ final class DefaultTsaNetApiSession implements TsaNetApiSession, AuthFacade, Col
     }
 
     @Override
+    public CollaborationRequestStatusDto closeRequest(String caseToken) {
+        return responsesGateway.closeCollaborationRequest(caseToken);
+    }
+
+    @Override
+    public CollaborationRequestStatusDto rejectRequest(
+        String caseToken,
+        String engineerName,
+        String engineerEmail,
+        String engineerPhone,
+        String reason
+    ) {
+        return responsesGateway.rejectCollaborationRequest(
+            caseToken,
+            engineerName,
+            engineerEmail,
+            engineerPhone,
+            reason
+        );
+    }
+
+    @Override
+    public CollaborationRequestStatusDto submitInformationRequest(
+        String caseToken,
+        String engineerName,
+        String engineerEmail,
+        String engineerPhone,
+        String requestedInformation
+    ) {
+        return responsesGateway.submitInformationRequest(
+            caseToken,
+            engineerName,
+            engineerEmail,
+            engineerPhone,
+            requestedInformation
+        );
+    }
+
+    @Override
+    public CollaborationRequestStatusDto submitInformationResponse(String caseToken, String requestedInformation) {
+        return responsesGateway.submitInformationResponse(caseToken, requestedInformation);
+    }
+
+    @Override
     public UserContextDto getCurrentUser() {
         return userGateway.getCurrentUser();
     }
@@ -352,8 +494,28 @@ final class DefaultTsaNetApiSession implements TsaNetApiSession, AuthFacade, Col
     }
 
     @Override
+    public WebhookDeliveryPageDto listDeliveries(long subscriptionId, int page, int size) {
+        return webhooksGateway.listWebhookDeliveries(subscriptionId, page, size);
+    }
+
+    @Override
+    public List<WebhookInboundEventDto> listStoredInboundEvents() {
+        return webhookInboundEventStorageService.findAll();
+    }
+
+    @Override
+    public WebhookInboundResultDto receiveInbound(String signatureHeader, String rawBody) {
+        return webhookInboundService.receive(signatureHeader, rawBody);
+    }
+
+    @Override
     public List<PartnerSelectionDto> searchPartners(String searchTerm) {
         return partnersGateway.searchPartners(searchTerm);
+    }
+
+    @Override
+    public List<PartnerSelectionDto> searchPartnersSemantic(String query, Integer limit) {
+        return partnersGateway.searchPartnersSemantic(query, limit);
     }
 
     @Override
@@ -377,6 +539,22 @@ final class DefaultTsaNetApiSession implements TsaNetApiSession, AuthFacade, Col
     }
 
     @Override
+    public NormalizedHttpsAttachmentConfigDto analyzeHttpsAttachmentConfig(
+        String caseToken,
+        Map<String, Object> requestBody
+    ) {
+        return attachmentsGateway.analyzeHttpsAttachmentConfig(caseToken, requestBody);
+    }
+
+    @Override
+    public AttachmentConfigDto updateHttpsAttachmentConfig(
+        String caseToken,
+        NormalizedHttpsAttachmentConfigDto config
+    ) {
+        return attachmentsGateway.updateHttpsAttachmentConfig(caseToken, config);
+    }
+
+    @Override
     public List<StoredAttachmentConfigDto> listStoredAttachmentConfigs() {
         return attachmentConfigStorageService.findAll();
     }
@@ -396,16 +574,16 @@ final class DefaultTsaNetApiSession implements TsaNetApiSession, AuthFacade, Col
         return attachmentForwardResultStorageService.findByCaseToken(caseToken);
     }
 
-    private CollaborationRequestFormDto storeFormMetadata(long receiverCompanyId, CollaborationRequestDTO form) {
+    private CollaborationRequestFormDto storeFormMetadata(
+        long receiverCompanyId,
+        Long departmentId,
+        CollaborationRequestDTO form
+    ) {
         if (form.getDocumentId() == null) {
             throw new IllegalStateException("Form for company " + receiverCompanyId + " has no documentId");
         }
-        int customFieldCount = form.getCustomFields() != null ? form.getCustomFields().size() : 0;
-        CollaborationRequestFormDto dto = new CollaborationRequestFormDto(
-            receiverCompanyId,
-            form.getDocumentId(),
-            customFieldCount
-        );
+        CollaborationRequestFormTemplateDto template = FormTemplateMapper.toTemplate(form, receiverCompanyId, departmentId);
+        CollaborationRequestFormDto dto = template.toStoredMetadata(receiverCompanyId);
         collaborationRequestFormStorageService.storeFetched(dto);
         return dto;
     }
@@ -438,6 +616,12 @@ final class DefaultTsaNetApiSession implements TsaNetApiSession, AuthFacade, Col
                 continue;
             }
             attachmentsGateway.getAttachmentConfig(request.token());
+        }
+    }
+
+    private void ensureAuthenticatedForWebhook() {
+        if (!auth().isAuthorized()) {
+            auth().loginWithConfiguredCredentials();
         }
     }
 }

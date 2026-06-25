@@ -3,10 +3,14 @@ package com.tsanet.api.connectapi.internal;
 import static com.tsanet.api.connectapi.internal.OpenApiMapping.dateTime;
 import static com.tsanet.api.connectapi.internal.OpenApiMapping.joinEnumList;
 
+import com.tsanet.api.connectapi.dto.WebhookDeliveryDto;
+import com.tsanet.api.connectapi.dto.WebhookDeliveryPageDto;
 import com.tsanet.api.connectapi.dto.WebhookSubscriptionDto;
 import com.tsanet.api.connectapi.dto.WebhookSubscriptionResponseDto;
 import com.tsanet.api.generated.api.WebhooksApi;
 import com.tsanet.api.generated.model.CreateWebhookSubscriptionRequestDTO;
+import com.tsanet.api.generated.model.WebhookDeliveryLogDTO;
+import com.tsanet.api.generated.model.WebhookDeliveryLogPageDTO;
 import com.tsanet.api.generated.model.WebhookSubscriptionDTO;
 import com.tsanet.api.generated.model.WebhookSubscriptionResponseDTO;
 import com.tsanet.api.generated.model.WebhookEventType;
@@ -58,7 +62,25 @@ public class ConnectApiWebhooksGateway {
 
         // Refresh stored list after mutation.
         listWebhookSubscriptions();
+        storageService.storeSecret(response.getId(), response.getSecret());
         return toResponseDto(response);
+    }
+
+    public WebhookDeliveryPageDto listWebhookDeliveries(Long id, int page, int size) {
+        requireLogin();
+
+        WebhookDeliveryLogPageDTO body = webhooksApi.getWebhookDeliveries(id, page, size);
+        if (body == null || body.getContent() == null) {
+            return new WebhookDeliveryPageDto(Collections.emptyList(), 0, 0, size, page);
+        }
+        List<WebhookDeliveryDto> deliveries = body.getContent().stream().map(this::toDeliveryDto).toList();
+        return new WebhookDeliveryPageDto(
+            deliveries,
+            body.getTotalElements() != null ? body.getTotalElements() : deliveries.size(),
+            body.getTotalPages() != null ? body.getTotalPages() : 1,
+            body.getSize() != null ? body.getSize() : size,
+            body.getNumber() != null ? body.getNumber() : page
+        );
     }
 
     public void deleteWebhookSubscription(Long id) {
@@ -86,6 +108,20 @@ public class ConnectApiWebhooksGateway {
             joinEnumList(dto.getEventTypes()),
             dto.getActive(),
             dto.getSecret(),
+            dateTime(dto.getCreatedAt())
+        );
+    }
+
+    private WebhookDeliveryDto toDeliveryDto(WebhookDeliveryLogDTO dto) {
+        return new WebhookDeliveryDto(
+            dto.getId(),
+            dto.getIntegrationId(),
+            dto.getEventType(),
+            dto.getHttpStatus(),
+            dto.getAttemptNumber(),
+            dto.getSuccess(),
+            dto.getRequestBody(),
+            dto.getResponseBody(),
             dateTime(dto.getCreatedAt())
         );
     }

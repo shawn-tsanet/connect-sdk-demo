@@ -33,7 +33,7 @@ public class StoredPartnersCommand implements Command {
             var partners = CliArgs.search(args)
                 .map(searchTerm -> session.partners().listStoredPartnersForSearchTerm(searchTerm))
                 .orElseGet(() -> session.partners().listStoredPartners());
-            EntityPrinter.printPartners(cliRunContext, "Stored partners", partners);
+            EntityPrinter.printPartnersNumbered(cliRunContext, "Stored partners", partners);
         } catch (Exception ex) {
             System.out.println(EntityPrinter.error(cliRunContext, "Failed: " + ex.getMessage()));
         }

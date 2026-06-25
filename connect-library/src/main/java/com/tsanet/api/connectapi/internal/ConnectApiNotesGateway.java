@@ -3,6 +3,7 @@ package com.tsanet.api.connectapi.internal;
 import static com.tsanet.api.connectapi.internal.OpenApiMapping.dateTime;
 import static com.tsanet.api.connectapi.internal.OpenApiMapping.enumValue;
 
+import com.tsanet.api.connectapi.CaseNoteValidation;
 import com.tsanet.api.connectapi.dto.CaseNoteDto;
 import com.tsanet.api.generated.api.CaseNotesApi;
 import com.tsanet.api.generated.model.CaseNoteDTO;
@@ -42,9 +43,14 @@ public class ConnectApiNotesGateway {
     public CaseNoteDto createNote(String caseToken, String summary, String description, String priority) {
         requireLogin();
 
+        CaseNoteValidation.ValidationResult validation = CaseNoteValidation.validate(summary, description);
+        if (!validation.valid()) {
+            throw new IllegalArgumentException(validation.message());
+        }
+
         CaseNoteTemplateDTO template = new CaseNoteTemplateDTO();
-        template.setSummary(summary);
-        template.setDescription(description);
+        template.setSummary(summary.strip());
+        template.setDescription(description.strip());
         template.setPriority(NotePriority.fromValue(priority));
 
         CaseNoteDTO created = caseNotesApi.createNote(caseToken, template);
@@ -52,7 +58,7 @@ public class ConnectApiNotesGateway {
             throw new IllegalStateException("Create note returned empty response");
         }
         CaseNoteDto note = toDto(created, caseToken);
-        storageService.storeFetched(List.of(note));
+        getNotes(caseToken);
         return note;
     }
 

@@ -1,19 +1,18 @@
 package com.tsanet.facade.cli.commands;
 
-import com.tsanet.facade.cli.CliArgs;
 import com.tsanet.facade.cli.CliRunContext;
 import com.tsanet.facade.cli.EntityPrinter;
-import com.tsanet.api.TsaNetApiSession;
+import com.tsanet.facade.cli.PartnerSearchExecutor;
 import java.util.Scanner;
 import org.springframework.stereotype.Component;
 
 @Component
 public class PartnersCommand implements Command {
-    private final TsaNetApiSession session;
+    private final PartnerSearchExecutor partnerSearchExecutor;
     private final CliRunContext cliRunContext;
 
-    public PartnersCommand(TsaNetApiSession session, CliRunContext cliRunContext) {
-        this.session = session;
+    public PartnersCommand(PartnerSearchExecutor partnerSearchExecutor, CliRunContext cliRunContext) {
+        this.partnerSearchExecutor = partnerSearchExecutor;
         this.cliRunContext = cliRunContext;
     }
 
@@ -24,15 +23,13 @@ public class PartnersCommand implements Command {
 
     @Override
     public String description() {
-        return "Search partners in Connect API (--search TERM)";
+        return "Search partners (--search TERM, optional --semantic, --limit N, --partner-index N)";
     }
 
     @Override
     public void execute(String[] args, Scanner scanner) {
         try {
-            String searchTerm = CliArgs.search(args)
-                .orElseThrow(() -> new IllegalArgumentException("Provide --search TERM"));
-            EntityPrinter.printPartners(cliRunContext, "Partners", session.partners().searchPartners(searchTerm));
+            partnerSearchExecutor.execute(args, scanner, cliRunContext);
         } catch (Exception ex) {
             System.out.println(EntityPrinter.error(cliRunContext, "Failed: " + ex.getMessage()));
         }

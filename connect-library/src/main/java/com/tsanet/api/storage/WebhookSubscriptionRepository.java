@@ -61,6 +61,32 @@ public class WebhookSubscriptionRepository {
         );
     }
 
+    public void saveSecret(Long id, String secret) {
+        if (id == null || secret == null || secret.isBlank()) {
+            return;
+        }
+        jdbcTemplate.update(
+            "UPDATE webhook_subscription SET secret = ? WHERE id = ?",
+            secret,
+            id
+        );
+    }
+
+    public List<SecretRow> findVerificationSecrets() {
+        return jdbcTemplate.query(
+            """
+            SELECT id, secret
+            FROM webhook_subscription
+            WHERE secret IS NOT NULL AND TRIM(secret) <> ''
+            ORDER BY id
+            """,
+            (rs, rowNum) -> new SecretRow(rs.getLong("id"), rs.getString("secret"))
+        );
+    }
+
+    public record SecretRow(long subscriptionId, String secret) {
+    }
+
     private static WebhookSubscriptionDto mapRow(ResultSet rs, int rowNum) throws SQLException {
         Integer active = rs.getObject("active", Integer.class);
         return new WebhookSubscriptionDto(

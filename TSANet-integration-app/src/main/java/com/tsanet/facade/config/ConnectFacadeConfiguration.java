@@ -9,7 +9,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
-@EnableConfigurationProperties({ConnectFacadeProperties.class, CliProperties.class})
+@EnableConfigurationProperties({ConnectFacadeProperties.class, CliProperties.class, WebhookProperties.class})
 public class ConnectFacadeConfiguration {
     @Bean
     TsaNetApiSessionFactory tsaNetApiSessionFactory(ConnectFacadeProperties properties) {

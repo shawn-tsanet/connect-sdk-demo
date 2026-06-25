@@ -1,8 +1,10 @@
 package com.tsanet.api.facade;
 
 import com.tsanet.api.connectapi.dto.CollaborationRequestFormDto;
+import com.tsanet.api.connectapi.dto.CollaborationRequestFormTemplateDto;
 import com.tsanet.api.connectapi.dto.CollaborationRequestStatusDto;
 import java.util.List;
+import java.util.Map;
 
 public interface CollaborationRequestsFacade {
     List<CollaborationRequestStatusDto> listRequests();
@@ -13,9 +15,17 @@ public interface CollaborationRequestsFacade {
 
     CollaborationRequestFormDto getCreateForm(long receiverCompanyId);
 
+    CollaborationRequestFormTemplateDto getCreateFormByCompanyId(long receiverCompanyId);
+
+    CollaborationRequestFormTemplateDto getCreateFormByDepartmentId(long departmentId);
+
+    CollaborationRequestFormTemplateDto getCreateFormByDocumentId(long documentId);
+
     List<CollaborationRequestFormDto> listStoredForms();
 
     List<CollaborationRequestFormDto> listStoredFormsForReceiver(long receiverCompanyId);
+
+    List<CollaborationRequestFormDto> listStoredFormsForDocument(long documentId);
 
     CollaborationRequestStatusDto createRequest(
         long receiverCompanyId,
@@ -23,6 +33,16 @@ public interface CollaborationRequestsFacade {
         String summary,
         String description
     );
+
+    CollaborationRequestStatusDto createRequest(
+        CollaborationRequestFormTemplateDto formTemplate,
+        String caseNumber,
+        String summary,
+        String description,
+        Map<Long, String> customFieldValues
+    );
+
+    CollaborationRequestStatusDto fetchRequestByToken(String caseToken);
 
     void syncAllDetails();
 }

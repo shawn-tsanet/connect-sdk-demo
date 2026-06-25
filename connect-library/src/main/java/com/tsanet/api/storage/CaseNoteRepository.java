@@ -73,7 +73,7 @@ public class CaseNoteRepository {
             SELECT id, case_id, case_token, company_name, creator_username, creator_email,
                    creator_name, summary, description, priority, status, token, created_at, updated_at
             FROM case_note
-            ORDER BY id
+            ORDER BY created_at, id
             """,
             ROW_MAPPER
         );
@@ -86,7 +86,7 @@ public class CaseNoteRepository {
                    creator_name, summary, description, priority, status, token, created_at, updated_at
             FROM case_note
             WHERE case_token = ?
-            ORDER BY id
+            ORDER BY created_at, id
             """,
             ROW_MAPPER,
             caseToken

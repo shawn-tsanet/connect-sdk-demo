@@ -38,8 +38,11 @@ import com.tsanet.api.storage.PartnerSelectionRepository;
 import com.tsanet.api.storage.PartnerSelectionStorageService;
 import com.tsanet.api.storage.UserContextRepository;
 import com.tsanet.api.storage.UserContextStorageService;
+import com.tsanet.api.storage.WebhookInboundEventRepository;
+import com.tsanet.api.storage.WebhookInboundEventStorageService;
 import com.tsanet.api.storage.WebhookSubscriptionRepository;
 import com.tsanet.api.storage.WebhookSubscriptionStorageService;
+import com.tsanet.api.webhook.WebhookInboundService;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -89,6 +92,9 @@ public final class TsaNetApiRuntime {
         UserContextStorageService userContextStorageService = new UserContextStorageService(userContextRepository);
         WebhookSubscriptionStorageService webhookSubscriptionStorageService =
             new WebhookSubscriptionStorageService(webhookSubscriptionRepository);
+        WebhookInboundEventRepository webhookInboundEventRepository = new WebhookInboundEventRepository(jdbcTemplate);
+        WebhookInboundEventStorageService webhookInboundEventStorageService =
+            new WebhookInboundEventStorageService(webhookInboundEventRepository);
         PartnerSelectionStorageService partnerSelectionStorageService =
             new PartnerSelectionStorageService(partnerSelectionRepository);
         AttachmentConfigStorageService attachmentConfigStorageService =
@@ -155,6 +161,7 @@ public final class TsaNetApiRuntime {
             caseResponseStorageService,
             userContextStorageService,
             webhookSubscriptionStorageService,
+            webhookInboundEventStorageService,
             partnerSelectionStorageService,
             attachmentConfigStorageService,
             attachmentForwardResultStorageService

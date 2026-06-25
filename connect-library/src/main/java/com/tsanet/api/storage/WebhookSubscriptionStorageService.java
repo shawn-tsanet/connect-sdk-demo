@@ -17,4 +17,12 @@ public class WebhookSubscriptionStorageService {
     public List<WebhookSubscriptionDto> findAll() {
         return repository.findAll();
     }
+
+    public void storeSecret(Long id, String secret) {
+        repository.saveSecret(id, secret);
+    }
+
+    public List<WebhookSubscriptionRepository.SecretRow> findVerificationSecrets() {
+        return repository.findVerificationSecrets();
+    }
 }

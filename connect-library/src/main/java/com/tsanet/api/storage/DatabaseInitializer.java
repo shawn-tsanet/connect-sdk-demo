@@ -75,9 +75,26 @@ public final class DatabaseInitializer {
             callback_url TEXT,
             event_types TEXT,
             active INTEGER,
+            secret TEXT,
             created_at TEXT,
             updated_at TEXT,
             fetched_at TEXT NOT NULL
+        )
+        """;
+
+    private static final String WEBHOOK_INBOUND_EVENT_TABLE = """
+        CREATE TABLE IF NOT EXISTS webhook_inbound_event (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            subscription_id INTEGER,
+            event_type TEXT NOT NULL,
+            request_token TEXT NOT NULL,
+            note_token TEXT,
+            event_timestamp TEXT,
+            received_at TEXT NOT NULL,
+            signature_valid INTEGER NOT NULL,
+            cache_synced INTEGER NOT NULL,
+            sync_message TEXT,
+            raw_payload TEXT NOT NULL
         )
         """;
 
@@ -138,9 +155,21 @@ public final class DatabaseInitializer {
         jdbcTemplate.execute(CASE_RESPONSE_TABLE);
         jdbcTemplate.execute(USER_CONTEXT_TABLE);
         jdbcTemplate.execute(WEBHOOK_SUBSCRIPTION_TABLE);
+        jdbcTemplate.execute(WEBHOOK_INBOUND_EVENT_TABLE);
+        ensureColumn(jdbcTemplate, "webhook_subscription", "secret", "TEXT");
         jdbcTemplate.execute(PARTNER_SELECTION_TABLE);
         jdbcTemplate.execute(COLLABORATION_REQUEST_FORM_TABLE);
+        ensureColumn(jdbcTemplate, "collaboration_request_form", "department_id", "INTEGER");
+        ensureColumn(jdbcTemplate, "collaboration_request_form", "fields_json", "TEXT");
         jdbcTemplate.execute(ATTACHMENT_CONFIG_TABLE);
         jdbcTemplate.execute(ATTACHMENT_FORWARD_RESULT_TABLE);
+    }
+
+    private static void ensureColumn(JdbcTemplate jdbcTemplate, String table, String column, String sqlType) {
+        try {
+            jdbcTemplate.query("SELECT " + column + " FROM " + table + " LIMIT 0", rs -> {});
+        } catch (Exception ignored) {
+            jdbcTemplate.execute("ALTER TABLE " + table + " ADD COLUMN " + column + " " + sqlType);
+        }
     }
 }

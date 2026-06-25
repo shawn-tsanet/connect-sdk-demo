@@ -7,6 +7,7 @@ import static com.tsanet.facade.cli.TerminalColors.RESET;
 import static com.tsanet.facade.cli.TerminalColors.YELLOW;
 
 import com.tsanet.api.TsaNetApiSession;
+import com.tsanet.facade.cli.CliCommandDispatcher;
 import com.tsanet.facade.cli.CliRunContext;
 import com.tsanet.facade.cli.commands.Command;
 import com.tsanet.facade.cli.commands.CommandRegistry;
@@ -23,6 +24,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class ConsoleShellRunner implements CommandLineRunner {
     private final CommandRegistry commandRegistry;
+    private final CliCommandDispatcher commandDispatcher;
     private final ConnectFacadeProperties connectFacadeProperties;
     private final TsaNetApiSession session;
     private final CliRunContext cliRunContext;
@@ -30,12 +32,14 @@ public class ConsoleShellRunner implements CommandLineRunner {
 
     public ConsoleShellRunner(
         CommandRegistry commandRegistry,
+        CliCommandDispatcher commandDispatcher,
         ConnectFacadeProperties connectFacadeProperties,
         TsaNetApiSession session,
         CliRunContext cliRunContext,
         CliProperties cliProperties
     ) {
         this.commandRegistry = commandRegistry;
+        this.commandDispatcher = commandDispatcher;
         this.connectFacadeProperties = connectFacadeProperties;
         this.session = session;
         this.cliRunContext = cliRunContext;
@@ -80,7 +84,7 @@ public class ConsoleShellRunner implements CommandLineRunner {
             System.exit(1);
         }
 
-        command.execute(commandArgs, new Scanner(""));
+        commandDispatcher.run(commandName, commandArgs);
     }
 
     private void tryAutoLogin() {

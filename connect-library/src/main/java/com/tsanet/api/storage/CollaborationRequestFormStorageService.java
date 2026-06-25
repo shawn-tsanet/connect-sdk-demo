@@ -21,4 +21,8 @@ public class CollaborationRequestFormStorageService {
     public List<CollaborationRequestFormDto> findByReceiverCompanyId(long receiverCompanyId) {
         return repository.findByReceiverCompanyId(receiverCompanyId);
     }
+
+    public List<CollaborationRequestFormDto> findByDocumentId(long documentId) {
+        return repository.findByDocumentId(documentId);
+    }
 }

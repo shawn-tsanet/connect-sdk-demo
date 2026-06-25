@@ -21,4 +21,24 @@ public interface CaseResponsesFacade {
         String engineerPhone,
         String nextSteps
     );
+
+    CollaborationRequestStatusDto closeRequest(String caseToken);
+
+    CollaborationRequestStatusDto rejectRequest(
+        String caseToken,
+        String engineerName,
+        String engineerEmail,
+        String engineerPhone,
+        String reason
+    );
+
+    CollaborationRequestStatusDto submitInformationRequest(
+        String caseToken,
+        String engineerName,
+        String engineerEmail,
+        String engineerPhone,
+        String requestedInformation
+    );
+
+    CollaborationRequestStatusDto submitInformationResponse(String caseToken, String requestedInformation);
 }

@@ -12,6 +12,14 @@ tsanet:
     sqlite-path: "${user.home}/.tsanet-client-demo/data.db"
   cli:
     enabled: false
+  webhook:
+    enabled: true
+    port: 8090
+    path: /webhooks/tsanet
+    public-base-url: http://localhost:8090
+
+server:
+  port: ${tsanet.webhook.port:8090}
 
 crash:
   enabled: true

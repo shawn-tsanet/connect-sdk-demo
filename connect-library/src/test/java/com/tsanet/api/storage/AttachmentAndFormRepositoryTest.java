@@ -6,6 +6,7 @@ import com.tsanet.api.connectapi.dto.AttachmentConfigDto;
 import com.tsanet.api.connectapi.dto.AttachmentForwardResultDto;
 import com.tsanet.api.connectapi.dto.CollaborationRequestFormDto;
 import com.tsanet.api.connectapi.dto.CompanyAttachmentConfigDto;
+import com.tsanet.api.connectapi.dto.FormFieldDto;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
@@ -34,12 +35,14 @@ class AttachmentAndFormRepositoryTest {
 
     @Test
     void itStoresAndReadsCollaborationRequestForms() {
-        formRepository.save(new CollaborationRequestFormDto(20L, 100L, 3));
+        var fields = List.of(new FormFieldDto(1L, "DETAILS", "Serial", "TEXT", 1, true, null, null, "SN-1"));
+        formRepository.save(new CollaborationRequestFormDto(20L, 100L, 1, 30L, fields));
 
         assertThat(formRepository.findAll())
             .singleElement()
-            .isEqualTo(new CollaborationRequestFormDto(20L, 100L, 3));
+            .isEqualTo(new CollaborationRequestFormDto(20L, 100L, 1, 30L, fields));
         assertThat(formRepository.findByReceiverCompanyId(20L)).hasSize(1);
+        assertThat(formRepository.findByDocumentId(100L)).hasSize(1);
         assertThat(formRepository.findByReceiverCompanyId(99L)).isEmpty();
     }
 
