@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>TSANet Connect Demo</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header class="tsanet-header">
+    <img src="assets/tsanet-logo.png" alt="TSANet" class="tsanet-logo">
+    <div>
+        <h1>Connect API Demo</h1>
+        <p class="subtitle">Live against TSANet Connect BETA</p>
+    </div>
+</header>
+
+<main>
+    <section class="panel">
+        <h2>New Collaboration Request</h2>
+        <form id="create-form">
+            <label>Receiver Company ID
+                <input type="number" name="receiverCompanyId" required>
+            </label>
+            <label>Case Number
+                <input type="text" name="caseNumber" required>
+            </label>
+            <label>Summary
+                <input type="text" name="summary" required>
+            </label>
+            <label>Description
+                <textarea name="description" rows="3"></textarea>
+            </label>
+            <button type="submit">Create Request</button>
+        </form>
+        <p id="create-status" class="status"></p>
+    </section>
+
+    <section class="panel">
+        <div class="panel-header">
+            <h2>Collaboration Requests</h2>
+            <button id="refresh-btn">Refresh</button>
+        </div>
+        <table id="requests-table">
+            <thead>
+            <tr>
+                <th>ID</th>
+                <th>Status</th>
+                <th>Summary</th>
+                <th>Submitter</th>
+                <th>Receiver</th>
+                <th>Updated</th>
+            </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </section>
+</main>
+
+<script src="app.js"></script>
+</body>
+</html>
