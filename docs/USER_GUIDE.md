@@ -95,9 +95,9 @@ Opens from the Dashboard or after creating a case.
   
   The demo deliberately does not second-guess which actions the case's current
   state allows — the API is the authority, and its validation errors surface
-  in the status line. *Verified live on DEV (cases #3472 and #3474): approve,
-  reject, request-info, respond-info, and close. Still unverified: manual
-  add-note.*
+  in the status line. *All lifecycle actions verified live on DEV (cases
+  #3472 and #3474, 2026-07-13): approve, reject, request-info, respond-info,
+  close, and add-note.*
 
   The state machine as observed live:
 
