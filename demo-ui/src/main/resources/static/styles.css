@@ -59,13 +59,52 @@ body {
     background: #b3541e;
 }
 
+/* ---------- Tabs ---------- */
+
+.tabs {
+    display: flex;
+    gap: 0.25rem;
+    background: var(--tsanet-blue-dark);
+    padding: 0 2rem;
+}
+
+.tab {
+    background: transparent;
+    color: rgba(255, 255, 255, 0.7);
+    border: none;
+    border-radius: 0;
+    padding: 0.75rem 1.25rem;
+    font-size: 0.9rem;
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+}
+
+.tab:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: white;
+}
+
+.tab.active {
+    color: white;
+    border-bottom-color: var(--tsanet-accent);
+}
+
+/* ---------- Layout ---------- */
+
 main {
-    max-width: 960px;
+    max-width: 1080px;
     margin: 2rem auto;
     padding: 0 1.5rem;
+}
+
+.view {
     display: flex;
     flex-direction: column;
     gap: 1.5rem;
+}
+
+.hidden {
+    display: none !important;
 }
 
 .panel {
@@ -75,17 +114,27 @@ main {
     padding: 1.5rem;
 }
 
-.panel h2 {
+.panel h2, .panel h3 {
     margin-top: 0;
     color: var(--tsanet-blue);
-    font-size: 1.1rem;
 }
+
+.panel h2 { font-size: 1.1rem; }
+.panel h3 { font-size: 1rem; }
 
 .panel-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 1rem;
 }
+
+.muted {
+    color: #6d7a85;
+    font-size: 0.85rem;
+}
+
+/* ---------- Forms ---------- */
 
 form label {
     display: block;
@@ -95,7 +144,9 @@ form label {
 }
 
 form input,
-form textarea {
+form textarea,
+form select,
+select {
     display: block;
     width: 100%;
     margin-top: 0.25rem;
@@ -103,6 +154,28 @@ form textarea {
     border: 1px solid var(--border);
     border-radius: 4px;
     font-size: 0.9rem;
+    background: white;
+    color: var(--text);
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0 1rem;
+}
+
+.inline-form {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.inline-form input {
+    margin-top: 0;
+    flex: 1;
+}
+
+.inline-form button {
+    flex-shrink: 0;
 }
 
 button {
@@ -127,15 +200,30 @@ button.secondary:hover {
     background: #6d7a85;
 }
 
+button.danger {
+    background: #b3402e;
+}
+
+button.danger:hover {
+    background: #8c3021;
+}
+
 .button-row {
     display: flex;
     gap: 0.5rem;
+    align-items: center;
+}
+
+.button-row.wrap {
+    flex-wrap: wrap;
 }
 
 .status {
     font-size: 0.85rem;
     min-height: 1.2em;
 }
+
+/* ---------- Tables ---------- */
 
 table {
     width: 100%;
@@ -153,4 +241,134 @@ th, td {
 th {
     color: #4a5b68;
     font-weight: 600;
+}
+
+tr.clickable {
+    cursor: pointer;
+}
+
+tr.clickable:hover {
+    background: #eef4f9;
+}
+
+/* ---------- Status / direction chips ---------- */
+
+.chip {
+    display: inline-block;
+    padding: 0.15rem 0.6rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    background: #e3e9ee;
+    color: #4a5b68;
+}
+
+.chip.outbound { background: #dcebf7; color: #0b3d6e; }
+.chip.inbound { background: #e5f2e5; color: #2e5d2e; }
+.chip.st-open, .chip.st-pending { background: #fdf0d5; color: #8a6100; }
+.chip.st-approved, .chip.st-accepted { background: #e5f2e5; color: #2e7d32; }
+.chip.st-rejected { background: #fbe2dd; color: #b3402e; }
+.chip.st-closed { background: #e3e9ee; color: #4a5b68; }
+.chip.st-information_requested, .chip.st-info_requested { background: #e8e2f7; color: #5b3f9e; }
+
+/* ---------- Partner results ---------- */
+
+.partner-results {
+    margin-top: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.partner-card {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0.75rem 1rem;
+}
+
+.partner-card .p-name {
+    font-weight: 600;
+    color: var(--tsanet-blue);
+}
+
+.partner-card .p-dept {
+    font-size: 0.8rem;
+    color: #6d7a85;
+}
+
+/* ---------- Case detail ---------- */
+
+.case-summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 0.75rem;
+    margin-top: 0.5rem;
+    font-size: 0.9rem;
+}
+
+.case-summary .kv .k {
+    font-size: 0.75rem;
+    color: #6d7a85;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.case-summary .kv .v {
+    margin-top: 0.15rem;
+}
+
+.case-summary .kv.full {
+    grid-column: 1 / -1;
+}
+
+/* ---------- Timeline ---------- */
+
+.timeline {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-top: 0.5rem;
+}
+
+.timeline-item {
+    border-left: 3px solid var(--tsanet-accent);
+    padding: 0.5rem 0.75rem;
+    background: #f8fafc;
+    border-radius: 0 6px 6px 0;
+}
+
+.timeline-item .t-head {
+    display: flex;
+    gap: 0.75rem;
+    align-items: baseline;
+    font-size: 0.8rem;
+    color: #6d7a85;
+}
+
+.timeline-item .t-title {
+    font-weight: 600;
+    color: var(--text);
+    font-size: 0.9rem;
+}
+
+.timeline-item .t-body {
+    margin-top: 0.25rem;
+    font-size: 0.85rem;
+    white-space: pre-wrap;
+}
+
+/* ---------- Action form host ---------- */
+
+#action-form-host {
+    margin-top: 0.75rem;
+}
+
+#action-form-host .action-form {
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 1rem;
+    background: #f8fafc;
 }

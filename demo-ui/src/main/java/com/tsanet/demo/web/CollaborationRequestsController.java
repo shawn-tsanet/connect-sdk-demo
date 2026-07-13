@@ -1,11 +1,15 @@
 package com.tsanet.demo.web;
 
 import com.tsanet.api.TsaNetApiSession;
+import com.tsanet.api.connectapi.dto.CaseNoteDto;
+import com.tsanet.api.connectapi.dto.CaseResponseDto;
+import com.tsanet.api.connectapi.dto.CollaborationRequestFormTemplateDto;
 import com.tsanet.api.connectapi.dto.CollaborationRequestStatusDto;
-import com.tsanet.demo.config.CredentialsStore;
 import java.util.List;
+import java.util.Map;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
@@ -15,34 +19,40 @@ import org.springframework.web.server.ResponseStatusException;
 public class CollaborationRequestsController {
 
     private final TsaNetApiSession session;
-    private final CredentialsStore credentialsStore;
+    private final SessionGuard guard;
 
-    public CollaborationRequestsController(TsaNetApiSession session, CredentialsStore credentialsStore) {
+    public CollaborationRequestsController(TsaNetApiSession session, SessionGuard guard) {
         this.session = session;
-        this.credentialsStore = credentialsStore;
-    }
-
-    private void ensureAuthenticated() {
-        if (session.auth().isAuthorized()) {
-            return;
-        }
-        CredentialsStore.Credentials credentials = credentialsStore.load()
-            .orElseThrow(() -> new ResponseStatusException(
-                HttpStatus.PRECONDITION_REQUIRED,
-                "BETA credentials not configured - set them under Settings first"
-            ));
-        session.auth().login(credentials.username(), credentials.password());
+        this.guard = guard;
     }
 
     @GetMapping("/api/requests")
     public List<CollaborationRequestStatusDto> listRequests() {
-        ensureAuthenticated();
+        guard.ensureAuthenticated();
         return session.collaborationRequests().listRequests();
     }
 
+    /**
+     * Creates a collaboration request. Form mode (formTemplate + customFieldValues)
+     * drives the partner's configured process form; simple mode falls back to
+     * receiverCompanyId with just the standard fields.
+     */
     @PostMapping("/api/requests")
     public CollaborationRequestStatusDto createRequest(@RequestBody CreateRequestBody body) {
-        ensureAuthenticated();
+        guard.ensureAuthenticated();
+        if (body.formTemplate() != null) {
+            return session.collaborationRequests().createRequest(
+                body.formTemplate(),
+                body.caseNumber(),
+                body.summary(),
+                body.description(),
+                body.customFieldValues() != null ? body.customFieldValues() : Map.of()
+            );
+        }
+        if (body.receiverCompanyId() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                "either formTemplate or receiverCompanyId is required");
+        }
         return session.collaborationRequests().createRequest(
             body.receiverCompanyId(),
             body.caseNumber(),
@@ -51,11 +61,84 @@ public class CollaborationRequestsController {
         );
     }
 
+    @GetMapping("/api/requests/{token}")
+    public CaseDetail getRequest(@PathVariable String token) {
+        guard.ensureAuthenticated();
+        CollaborationRequestStatusDto status = session.collaborationRequests().fetchRequestByToken(token);
+        List<CaseNoteDto> notes = session.caseNotes().listNotesForRequest(token);
+        List<CaseResponseDto> responses = session.caseResponses().listResponsesForRequest(token);
+        return new CaseDetail(status, notes, responses);
+    }
+
+    @PostMapping("/api/requests/{token}/notes")
+    public CaseNoteDto addNote(@PathVariable String token, @RequestBody NoteBody body) {
+        guard.ensureAuthenticated();
+        return session.caseNotes().createNote(token, body.summary(), body.description(), body.priority());
+    }
+
+    @PostMapping("/api/requests/{token}/approve")
+    public CollaborationRequestStatusDto approve(@PathVariable String token, @RequestBody EngineerActionBody body) {
+        guard.ensureAuthenticated();
+        return session.caseResponses().approveRequest(
+            token, body.caseNumber(), body.engineerName(), body.engineerEmail(), body.engineerPhone(), body.text());
+    }
+
+    @PostMapping("/api/requests/{token}/reject")
+    public CollaborationRequestStatusDto reject(@PathVariable String token, @RequestBody EngineerActionBody body) {
+        guard.ensureAuthenticated();
+        return session.caseResponses().rejectRequest(
+            token, body.engineerName(), body.engineerEmail(), body.engineerPhone(), body.text());
+    }
+
+    @PostMapping("/api/requests/{token}/request-info")
+    public CollaborationRequestStatusDto requestInfo(@PathVariable String token, @RequestBody EngineerActionBody body) {
+        guard.ensureAuthenticated();
+        return session.caseResponses().submitInformationRequest(
+            token, body.engineerName(), body.engineerEmail(), body.engineerPhone(), body.text());
+    }
+
+    @PostMapping("/api/requests/{token}/respond-info")
+    public CollaborationRequestStatusDto respondInfo(@PathVariable String token, @RequestBody TextBody body) {
+        guard.ensureAuthenticated();
+        return session.caseResponses().submitInformationResponse(token, body.text());
+    }
+
+    @PostMapping("/api/requests/{token}/close")
+    public CollaborationRequestStatusDto close(@PathVariable String token) {
+        guard.ensureAuthenticated();
+        return session.caseResponses().closeRequest(token);
+    }
+
     public record CreateRequestBody(
-        long receiverCompanyId,
+        Long receiverCompanyId,
+        CollaborationRequestFormTemplateDto formTemplate,
         String caseNumber,
         String summary,
-        String description
+        String description,
+        Map<Long, String> customFieldValues
+    ) {
+    }
+
+    public record NoteBody(String summary, String description, String priority) {
+    }
+
+    /** Shared body for approve/reject/request-info; {@code text} carries nextSteps, reason, or requestedInformation. */
+    public record EngineerActionBody(
+        String caseNumber,
+        String engineerName,
+        String engineerEmail,
+        String engineerPhone,
+        String text
+    ) {
+    }
+
+    public record TextBody(String text) {
+    }
+
+    public record CaseDetail(
+        CollaborationRequestStatusDto status,
+        List<CaseNoteDto> notes,
+        List<CaseResponseDto> responses
     ) {
     }
 }
