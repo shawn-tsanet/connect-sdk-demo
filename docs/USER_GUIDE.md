@@ -95,9 +95,24 @@ Opens from the Dashboard or after creating a case.
   
   The demo deliberately does not second-guess which actions the case's current
   state allows — the API is the authority, and its validation errors surface
-  in the status line. *Verified live on DEV: approve (inbound) and close
-  (outbound), including the ACCEPTED/CLOSED status transitions. Still
-  unverified: reject, request-info, respond-info, manual add-note.*
+  in the status line. *Verified live on DEV (cases #3472 and #3474): approve,
+  reject, request-info, respond-info, and close. Still unverified: manual
+  add-note.*
+
+  The state machine as observed live:
+
+  ```
+  OPEN ──approve──▶ ACCEPTED ──close──▶ CLOSED   (terminal)
+   │
+   ├─reject──▶ REJECTED                          (terminal — close is invalid)
+   │
+   └─request-info──▶ INFORMATION ──respond-info──▶ (stays INFORMATION;
+        receiver must still approve/reject — close is invalid while pending)
+  ```
+
+  Invalid transitions come back as the legacy 500 with a meaningful message,
+  e.g. `{"message":"INFORMATION cases cannot be closed."}` — that's the
+  business contract enforcing itself, shown verbatim.
 - **Notes Timeline** and **Response History** — the full conversation and
   every engineer response on the case. System-generated notes (e.g.
   "Case accepted.") arrive as HTML; the demo renders them formatted through a
