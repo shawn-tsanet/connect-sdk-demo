@@ -4,10 +4,11 @@ How to drive the demo app itself. For build/start/stop mechanics see the
 [Runbook](RUNBOOK.md); this guide assumes the server is running at
 http://localhost:8090 (or a tunneled/hosted URL).
 
-> **Status note.** Everything below reflects the app as built. Core flows
-> (identity, case dashboard with direction split, partner search, dynamic
-> process-form rendering with sections and required markers) are
-> runtime-verified against **DEV** (2026-07-13). Items still marked
+> **Status note.** Everything below reflects the app as built. A full case
+> lifecycle round trip is runtime-verified against **DEV** (2026-07-13, case
+> #3472): identity, dashboard with direction split, partner search, dynamic
+> form rendering, **create → approve → close** played from both sides of the
+> collaboration using the loadtest UAT account pair. Items still marked
 > *unverified* have not run against live data on the noted environment.
 
 ## 1. What this demonstrates
@@ -74,12 +75,12 @@ The heart of the demo:
    the partner's custom fields, then **Submit Collaboration Request**.
 4. On success you get the new case id + a link straight into the case detail.
 
-*Verified on DEV (2026-07-13):* partner search and form rendering confirmed
-live against real forms (sections, required markers, text fields). *Still
-unverified:* dropdown-option formatting (newline-delimited first, comma
-fallback) — no select-type field has been seen live yet — and everything on
-BETA. If a field renders as the wrong input type, that's a one-line mapping
-fix — report it.
+*Verified on DEV (2026-07-13):* partner search, form rendering (sections,
+required markers, text fields), and submit-through-to-created-case, all
+confirmed live. *Still unverified:* dropdown-option formatting
+(newline-delimited first, comma fallback) — no select-type field has been
+seen live yet — and everything on BETA. If a field renders as the wrong
+input type, that's a one-line mapping fix — report it.
 
 ## 6. Case detail — lifecycle, notes, attachments
 
@@ -94,10 +95,13 @@ Opens from the Dashboard or after creating a case.
   
   The demo deliberately does not second-guess which actions the case's current
   state allows — the API is the authority, and its validation errors surface
-  in the status line. *(Unverified: exact state-transition rules against live
-  cases.)*
+  in the status line. *Verified live on DEV: approve (inbound) and close
+  (outbound), including the ACCEPTED/CLOSED status transitions. Still
+  unverified: reject, request-info, respond-info, manual add-note.*
 - **Notes Timeline** and **Response History** — the full conversation and
-  every engineer response on the case.
+  every engineer response on the case. System-generated notes (e.g.
+  "Case accepted.") arrive as HTML; the demo renders them formatted through a
+  strict allowlist sanitizer, never as raw markup.
 - **Attachments** — *Load Config* shows the case's attachment configuration;
   when the partner supports it, the upload form forwards files to the case.
   *(Unverified against live BETA.)*
