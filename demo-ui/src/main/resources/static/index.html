@@ -11,8 +11,9 @@
     <img src="assets/tsanet-logo.png" alt="TSANet" class="tsanet-logo">
     <div>
         <h1>Connect SDK Demo</h1>
-        <p class="subtitle">Live against TSANet Connect BETA</p>
+        <p class="subtitle" id="env-subtitle">TSANet Connect</p>
     </div>
+    <span id="env-chip" class="badge env-chip"></span>
     <span id="auth-badge" class="badge">Checking...</span>
 </header>
 
@@ -187,21 +188,12 @@
     <div id="view-settings" class="view hidden">
         <section class="panel">
             <div class="panel-header">
-                <h2>Settings</h2>
+                <h2>Settings — Environments</h2>
                 <span id="settings-status" class="status"></span>
             </div>
-            <form id="settings-form">
-                <label>BETA Username
-                    <input type="text" name="username" autocomplete="off" required>
-                </label>
-                <label>BETA Password
-                    <input type="password" name="password" autocomplete="off" required>
-                </label>
-                <div class="button-row">
-                    <button type="submit">Save Credentials</button>
-                    <button type="button" id="clear-settings-btn" class="secondary">Clear</button>
-                </div>
-            </form>
+            <p class="muted">Credentials are stored per environment. Switching the active
+                environment repoints every tab; each environment keeps its own local cache.</p>
+            <div id="env-settings"></div>
         </section>
     </div>
 </main>

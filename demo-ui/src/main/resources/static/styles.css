@@ -59,6 +59,53 @@ body {
     background: #b3541e;
 }
 
+.env-chip {
+    margin-left: auto;
+    background: var(--tsanet-accent);
+    font-weight: 700;
+    letter-spacing: 0.05em;
+}
+
+.env-chip + .badge {
+    margin-left: 0.5rem;
+}
+
+/* ---------- Environment settings cards ---------- */
+
+.env-card {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1rem 1.25rem;
+    margin-top: 1rem;
+}
+
+.env-card.active-env {
+    border-color: var(--tsanet-accent);
+    box-shadow: 0 0 0 1px var(--tsanet-accent);
+}
+
+.env-card .env-head {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+}
+
+.env-card .env-name {
+    font-weight: 700;
+    color: var(--tsanet-blue);
+    font-size: 1rem;
+}
+
+.env-card .env-url {
+    font-size: 0.8rem;
+    color: #6d7a85;
+}
+
+.env-card .env-head .spacer {
+    margin-left: auto;
+}
+
 /* ---------- Tabs ---------- */
 
 .tabs {

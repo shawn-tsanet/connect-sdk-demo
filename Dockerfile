@@ -10,9 +10,8 @@ WORKDIR /app
 
 COPY demo-ui/target/demo-ui-0.0.1-SNAPSHOT.jar app.jar
 
-# Credentials + sqlite cache land here; ephemeral on App Runner by design.
-ENV TSANET_DEMO_CREDENTIALS_PATH=/tmp/tsanet-demo/credentials.properties \
-    TSANET_DEMO_SQLITE_PATH=/tmp/tsanet-demo/data.db
+# Per-env credentials + sqlite caches land here; ephemeral on App Runner by design.
+ENV TSANET_DEMO_DATA_DIR=/tmp/tsanet-demo
 
 EXPOSE 8090
 ENTRYPOINT ["java", "-jar", "app.jar"]

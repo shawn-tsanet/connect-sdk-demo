@@ -7,20 +7,19 @@ import java.nio.file.Path;
 import java.nio.file.attribute.PosixFilePermissions;
 import java.util.Optional;
 import java.util.Properties;
-import org.springframework.stereotype.Component;
 
 /**
- * Holds BETA member credentials entered via the settings UI. Stored in a
- * plain properties file outside the repo (never logged, never returned by
- * the settings API) so the demo can run without env vars or a redeploy.
+ * Holds member credentials for one environment, entered via the settings UI.
+ * Stored in a plain properties file outside the repo (never logged, never
+ * returned by the settings API) so the demo can run without env vars or a
+ * redeploy. Instantiated per environment by {@link EnvironmentService}.
  */
-@Component
 public class CredentialsStore {
 
     private final Path path;
 
-    public CredentialsStore(DemoProperties properties) {
-        this.path = Path.of(properties.credentialsPath());
+    public CredentialsStore(Path path) {
+        this.path = path;
     }
 
     public synchronized Optional<Credentials> load() {

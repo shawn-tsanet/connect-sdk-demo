@@ -4,10 +4,11 @@ How to drive the demo app itself. For build/start/stop mechanics see the
 [Runbook](RUNBOOK.md); this guide assumes the server is running at
 http://localhost:8090 (or a tunneled/hosted URL).
 
-> **Status note.** Everything below reflects the app as built. Flows marked
-> *unverified* have not yet run against live BETA data because no member
-> credentials were available when this guide was written — behavior is
-> implemented per the OpenAPI contract but not runtime-proven.
+> **Status note.** Everything below reflects the app as built. Core flows
+> (identity, case dashboard with direction split, partner search, dynamic
+> process-form rendering with sections and required markers) are
+> runtime-verified against **DEV** (2026-07-13). Items still marked
+> *unverified* have not run against live data on the noted environment.
 
 ## 1. What this demonstrates
 
@@ -28,16 +29,23 @@ The badge in the top-right corner is the connection truth:
 | Amber — "Not configured" | No credentials saved yet (Settings tab) |
 | Amber — "Auth failed: Connect API returned 500 — Error processing request" | BETA rejected the credentials. The API's legacy error mode returns 500 (not 401) for bad logins, so this is almost always a wrong username/password |
 
-## 3. Settings — credentials
+## 3. Settings — environments and credentials
 
-1. Open the **Settings** tab
-2. Enter the BETA member username and password → **Save Credentials**
-3. The badge goes green and every other tab comes alive
+The Settings tab shows one card per environment (**BETA** and **DEV**). Each
+card holds that environment's credentials; the highlighted card is the
+**active** environment, and the header chip always shows which one you're on.
 
-Credentials persist to a mode-600 properties file on the server host
-(`~/.tsanet-demo-ui/credentials.properties` locally; ephemeral `/tmp` in the
-container). They are never committed, logged, or returned by the API —
-`GET /api/settings` reports only the username. **Clear** wipes the file.
+1. Enter the member username and password on an environment's card →
+   **Save Credentials**
+2. **Make Active** switches the whole app to that environment (dashboard,
+   partner search, everything repoints; the badge re-authenticates)
+3. The active environment persists across restarts
+
+Each environment keeps an isolated credentials file (mode 600) and its own
+SQLite cache under `~/.tsanet-demo-ui/` (ephemeral `/tmp` in the container),
+so BETA and DEV data never mix. Credentials are never committed, logged, or
+returned by the API — `GET /api/settings` reports only the username.
+**Clear** wipes that environment's file.
 
 When the app is deployed with the Basic-auth gate enabled
 (`TSANET_DEMO_AUTH_PASSWORD` set), the browser prompts for the gate
@@ -66,10 +74,12 @@ The heart of the demo:
    the partner's custom fields, then **Submit Collaboration Request**.
 4. On success you get the new case id + a link straight into the case detail.
 
-*Unverified:* custom-field type strings and dropdown-option formatting are
-implemented defensively (newline-delimited options first, comma fallback) but
-need one live form to confirm rendering. If a field renders as the wrong
-input type, that's a one-line mapping fix — report it.
+*Verified on DEV (2026-07-13):* partner search and form rendering confirmed
+live against real forms (sections, required markers, text fields). *Still
+unverified:* dropdown-option formatting (newline-delimited first, comma
+fallback) — no select-type field has been seen live yet — and everything on
+BETA. If a field renders as the wrong input type, that's a one-line mapping
+fix — report it.
 
 ## 6. Case detail — lifecycle, notes, attachments
 

@@ -3,10 +3,18 @@ server:
 
 tsanet:
   demo:
-    # BETA. Production is connect2.tsanet.org — never point the demo there.
-    api-base-url: ${TSANET_DEMO_API_BASE_URL:https://connect2.tsanet.net}
-    sqlite-path: ${TSANET_DEMO_SQLITE_PATH:${user.home}/.tsanet-demo-ui/data.db}
-    credentials-path: ${TSANET_DEMO_CREDENTIALS_PATH:${user.home}/.tsanet-demo-ui/credentials.properties}
+    # Per-env sqlite caches, credentials files, and the active-environment
+    # marker all live under this directory.
+    data-dir: ${TSANET_DEMO_DATA_DIR:${user.home}/.tsanet-demo-ui}
+    default-environment: beta
+    # Production is connect2.tsanet.org — deliberately NOT listed here.
+    environments:
+      beta:
+        label: BETA
+        api-base-url: https://connect2.tsanet.net
+      dev:
+        label: DEV
+        api-base-url: https://connect2.tahoelab.us
     auth:
       username: ${TSANET_DEMO_AUTH_USER:demo}
       password: ${TSANET_DEMO_AUTH_PASSWORD:}

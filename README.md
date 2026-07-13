@@ -3,7 +3,8 @@
 Private demo of the **TSANet Connect SDK**: a branded web application that
 exercises the full SDK surface — partner discovery, dynamic process forms, the
 complete collaboration-case lifecycle, attachments, and webhooks — against the
-TSANet Connect **BETA** environment (`connect2.tsanet.net`).
+TSANet Connect **BETA** and **DEV** environments, switchable at runtime from
+the Settings tab.
 
 Seeded from `tsanetgit/Connect_SDK` branch `raw-impl`; the upstream modules are
 kept as-is and the demo is layered on top.
@@ -32,9 +33,11 @@ out. See the [Runbook](docs/RUNBOOK.md) for the exact commands.
 
 ## Environments
 
+Selectable in-app (Settings tab); credentials and the SQLite cache are kept
+separately per environment.
+
 | Environment | Base URL | Notes |
 |---|---|---|
-| **BETA** (default) | `https://connect2.tsanet.net` | What this demo targets |
-| Production | `https://connect2.tsanet.org` | Never point the demo here |
-
-Override with `TSANET_DEMO_API_BASE_URL` if needed.
+| **BETA** (default) | `https://connect2.tsanet.net` | Java Connect API, beta contract |
+| **DEV** | `https://connect2.tahoelab.us` | Java Connect API DEV deployment. NOT `api.tahoelab.us` — that's the separate Laravel app and 404s `/v1` |
+| Production | `https://connect2.tsanet.org` | Deliberately not selectable — never point the demo here |

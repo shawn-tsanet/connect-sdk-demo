@@ -15,7 +15,9 @@ async function fetchJson(url, options) {
             if (body.error) message = body.error;
             if (body.detail) message += ` — ${body.detail}`;
         } catch (ignored) { /* non-JSON error body */ }
-        if (res.status === 428) message = 'BETA credentials not configured — see Settings';
+        if (res.status === 428 && message === `HTTP ${res.status}`) {
+            message = 'Credentials not configured — see Settings';
+        }
         throw new Error(message);
     }
     if (res.status === 204) return null;
@@ -65,13 +67,20 @@ function showView(name) {
     if (name === 'webhooks') loadWebhooks();
 }
 
-// ---------- identity ----------
+// ---------- identity + environments ----------
 
 async function refreshIdentity() {
     const badge = document.getElementById('auth-badge');
+    const chip = document.getElementById('env-chip');
+    const subtitle = document.getElementById('env-subtitle');
     try {
         const settings = await fetchJson('/api/settings');
-        if (!settings.configured) {
+        state.settings = settings;
+        const active = settings.environments.find(e => e.key === settings.activeEnvironment);
+        chip.textContent = active?.label ?? settings.activeEnvironment;
+        subtitle.textContent = `TSANet Connect ${active?.label ?? ''} — ${active?.apiBaseUrl ?? ''}`;
+        renderEnvSettings();
+        if (!active?.configured) {
             state.me = null;
             badge.textContent = 'Not configured';
             badge.className = 'badge not-configured';
@@ -87,6 +96,102 @@ async function refreshIdentity() {
         state.me = null;
         badge.textContent = `Auth failed: ${err.message}`;
         badge.className = 'badge not-configured';
+    }
+}
+
+function renderEnvSettings() {
+    const host = document.getElementById('env-settings');
+    if (!host || !state.settings) return;
+    host.innerHTML = '';
+    for (const env of state.settings.environments) {
+        const isActive = env.key === state.settings.activeEnvironment;
+        const card = document.createElement('div');
+        card.className = 'env-card' + (isActive ? ' active-env' : '');
+        card.innerHTML = `
+            <div class="env-head">
+                <span class="env-name">${esc(env.label)}</span>
+                <span class="env-url">${esc(env.apiBaseUrl)}</span>
+                ${env.configured
+                    ? chipHtml(`credentials: ${env.username}`, 'st-approved')
+                    : chipHtml('no credentials', 'st-pending')}
+                <span class="spacer"></span>
+                ${isActive ? chipHtml('ACTIVE', 'outbound') : ''}
+            </div>
+            <form class="env-cred-form" data-env="${esc(env.key)}">
+                <div class="form-grid">
+                    <label>Username
+                        <input type="text" name="username" autocomplete="off" required>
+                    </label>
+                    <label>Password
+                        <input type="password" name="password" autocomplete="off" required>
+                    </label>
+                </div>
+                <div class="button-row">
+                    <button type="submit">Save Credentials</button>
+                    <button type="button" class="secondary env-clear-btn" data-env="${esc(env.key)}">Clear</button>
+                    ${isActive ? '' : `<button type="button" class="env-switch-btn" data-env="${esc(env.key)}">Make Active</button>`}
+                </div>
+            </form>
+        `;
+        host.appendChild(card);
+    }
+    host.querySelectorAll('.env-cred-form').forEach(form =>
+        form.addEventListener('submit', onSaveEnvCredentials));
+    host.querySelectorAll('.env-clear-btn').forEach(btn =>
+        btn.addEventListener('click', () => onClearEnvCredentials(btn.dataset.env)));
+    host.querySelectorAll('.env-switch-btn').forEach(btn =>
+        btn.addEventListener('click', () => onSwitchEnvironment(btn.dataset.env)));
+}
+
+function chipHtml(text, cls) {
+    return `<span class="chip ${cls}">${esc(text)}</span>`;
+}
+
+async function onSaveEnvCredentials(event) {
+    event.preventDefault();
+    const form = event.target;
+    const status = document.getElementById('settings-status');
+    status.textContent = 'Saving...';
+    try {
+        await fetchJson(`/api/settings/${encodeURIComponent(form.dataset.env)}/credentials`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({username: form.username.value, password: form.password.value}),
+        });
+        status.textContent = 'Credentials saved.';
+        await refreshIdentity();
+    } catch (err) {
+        status.textContent = `Failed: ${err.message}`;
+    }
+}
+
+async function onClearEnvCredentials(envKey) {
+    const status = document.getElementById('settings-status');
+    status.textContent = 'Clearing...';
+    try {
+        await fetchJson(`/api/settings/${encodeURIComponent(envKey)}/credentials`, {method: 'DELETE'});
+        status.textContent = 'Credentials cleared.';
+        await refreshIdentity();
+    } catch (err) {
+        status.textContent = `Failed: ${err.message}`;
+    }
+}
+
+async function onSwitchEnvironment(envKey) {
+    const status = document.getElementById('settings-status');
+    status.textContent = `Switching to ${envKey}...`;
+    try {
+        await fetchJson('/api/settings/environment', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({environment: envKey}),
+        });
+        status.textContent = `Active environment: ${envKey}.`;
+        state.me = null;
+        await refreshIdentity();
+        await loadRequests();
+    } catch (err) {
+        status.textContent = `Failed: ${err.message}`;
     }
 }
 
@@ -465,7 +570,10 @@ function renderCustomFields(template) {
     for (const f of fields) {
         if (f.section && f.section !== currentSection) {
             currentSection = f.section;
-            html += `<h3>${esc(currentSection)}</h3>`;
+            // Section arrives as an enum-ish string (e.g. COMMON_CUSTOMER_SECTION)
+            const pretty = currentSection.replace(/_/g, ' ').toLowerCase()
+                .replace(/\b\w/g, c => c.toUpperCase());
+            html += `<h3>${esc(pretty)}</h3>`;
         }
         const req = f.required ? 'required' : '';
         const name = `custom-${f.fieldId}`;
@@ -621,39 +729,6 @@ document.getElementById('webhook-form').addEventListener('submit', async (event)
         status.textContent = 'Subscription created.';
         form.reset();
         await loadWebhooks();
-    } catch (err) {
-        status.textContent = `Failed: ${err.message}`;
-    }
-});
-
-// ---------- settings ----------
-
-document.getElementById('settings-form').addEventListener('submit', async (event) => {
-    event.preventDefault();
-    const status = document.getElementById('settings-status');
-    const form = event.target;
-    status.textContent = 'Saving...';
-    try {
-        await fetchJson('/api/settings', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({username: form.username.value, password: form.password.value}),
-        });
-        form.reset();
-        status.textContent = 'Credentials saved.';
-        await refreshIdentity();
-    } catch (err) {
-        status.textContent = `Failed: ${err.message}`;
-    }
-});
-
-document.getElementById('clear-settings-btn').addEventListener('click', async () => {
-    const status = document.getElementById('settings-status');
-    status.textContent = 'Clearing...';
-    try {
-        await fetchJson('/api/settings', {method: 'DELETE'});
-        status.textContent = 'Credentials cleared.';
-        await refreshIdentity();
     } catch (err) {
         status.textContent = `Failed: ${err.message}`;
     }

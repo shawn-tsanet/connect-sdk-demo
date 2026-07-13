@@ -1,6 +1,5 @@
 package com.tsanet.demo.web;
 
-import com.tsanet.api.TsaNetApiSession;
 import com.tsanet.api.connectapi.dto.CollaborationRequestFormTemplateDto;
 import com.tsanet.api.connectapi.dto.PartnerSelectionDto;
 import java.util.List;
@@ -13,18 +12,15 @@ import org.springframework.web.server.ResponseStatusException;
 @RestController
 public class PartnersController {
 
-    private final TsaNetApiSession session;
     private final SessionGuard guard;
 
-    public PartnersController(TsaNetApiSession session, SessionGuard guard) {
-        this.session = session;
+    public PartnersController(SessionGuard guard) {
         this.guard = guard;
     }
 
     @GetMapping("/api/partners")
     public List<PartnerSelectionDto> searchPartners(@RequestParam("q") String searchTerm) {
-        guard.ensureAuthenticated();
-        return session.partners().searchPartners(searchTerm);
+        return guard.session().partners().searchPartners(searchTerm);
     }
 
     /**
@@ -38,7 +34,7 @@ public class PartnersController {
         @RequestParam(value = "departmentId", required = false) Long departmentId,
         @RequestParam(value = "companyId", required = false) Long companyId
     ) {
-        guard.ensureAuthenticated();
+        var session = guard.session();
         if (documentId != null) {
             return session.collaborationRequests().getCreateFormByDocumentId(documentId);
         }

@@ -1,6 +1,5 @@
 package com.tsanet.demo.web;
 
-import com.tsanet.api.TsaNetApiSession;
 import com.tsanet.api.connectapi.dto.CaseNoteDto;
 import com.tsanet.api.connectapi.dto.CaseResponseDto;
 import com.tsanet.api.connectapi.dto.CollaborationRequestFormTemplateDto;
@@ -18,18 +17,15 @@ import org.springframework.web.server.ResponseStatusException;
 @RestController
 public class CollaborationRequestsController {
 
-    private final TsaNetApiSession session;
     private final SessionGuard guard;
 
-    public CollaborationRequestsController(TsaNetApiSession session, SessionGuard guard) {
-        this.session = session;
+    public CollaborationRequestsController(SessionGuard guard) {
         this.guard = guard;
     }
 
     @GetMapping("/api/requests")
     public List<CollaborationRequestStatusDto> listRequests() {
-        guard.ensureAuthenticated();
-        return session.collaborationRequests().listRequests();
+        return guard.session().collaborationRequests().listRequests();
     }
 
     /**
@@ -39,7 +35,7 @@ public class CollaborationRequestsController {
      */
     @PostMapping("/api/requests")
     public CollaborationRequestStatusDto createRequest(@RequestBody CreateRequestBody body) {
-        guard.ensureAuthenticated();
+        var session = guard.session();
         if (body.formTemplate() != null) {
             return session.collaborationRequests().createRequest(
                 body.formTemplate(),
@@ -63,7 +59,7 @@ public class CollaborationRequestsController {
 
     @GetMapping("/api/requests/{token}")
     public CaseDetail getRequest(@PathVariable String token) {
-        guard.ensureAuthenticated();
+        var session = guard.session();
         CollaborationRequestStatusDto status = session.collaborationRequests().fetchRequestByToken(token);
         List<CaseNoteDto> notes = session.caseNotes().listNotesForRequest(token);
         List<CaseResponseDto> responses = session.caseResponses().listResponsesForRequest(token);
@@ -72,41 +68,35 @@ public class CollaborationRequestsController {
 
     @PostMapping("/api/requests/{token}/notes")
     public CaseNoteDto addNote(@PathVariable String token, @RequestBody NoteBody body) {
-        guard.ensureAuthenticated();
-        return session.caseNotes().createNote(token, body.summary(), body.description(), body.priority());
+        return guard.session().caseNotes().createNote(token, body.summary(), body.description(), body.priority());
     }
 
     @PostMapping("/api/requests/{token}/approve")
     public CollaborationRequestStatusDto approve(@PathVariable String token, @RequestBody EngineerActionBody body) {
-        guard.ensureAuthenticated();
-        return session.caseResponses().approveRequest(
+        return guard.session().caseResponses().approveRequest(
             token, body.caseNumber(), body.engineerName(), body.engineerEmail(), body.engineerPhone(), body.text());
     }
 
     @PostMapping("/api/requests/{token}/reject")
     public CollaborationRequestStatusDto reject(@PathVariable String token, @RequestBody EngineerActionBody body) {
-        guard.ensureAuthenticated();
-        return session.caseResponses().rejectRequest(
+        return guard.session().caseResponses().rejectRequest(
             token, body.engineerName(), body.engineerEmail(), body.engineerPhone(), body.text());
     }
 
     @PostMapping("/api/requests/{token}/request-info")
     public CollaborationRequestStatusDto requestInfo(@PathVariable String token, @RequestBody EngineerActionBody body) {
-        guard.ensureAuthenticated();
-        return session.caseResponses().submitInformationRequest(
+        return guard.session().caseResponses().submitInformationRequest(
             token, body.engineerName(), body.engineerEmail(), body.engineerPhone(), body.text());
     }
 
     @PostMapping("/api/requests/{token}/respond-info")
     public CollaborationRequestStatusDto respondInfo(@PathVariable String token, @RequestBody TextBody body) {
-        guard.ensureAuthenticated();
-        return session.caseResponses().submitInformationResponse(token, body.text());
+        return guard.session().caseResponses().submitInformationResponse(token, body.text());
     }
 
     @PostMapping("/api/requests/{token}/close")
     public CollaborationRequestStatusDto close(@PathVariable String token) {
-        guard.ensureAuthenticated();
-        return session.caseResponses().closeRequest(token);
+        return guard.session().caseResponses().closeRequest(token);
     }
 
     public record CreateRequestBody(

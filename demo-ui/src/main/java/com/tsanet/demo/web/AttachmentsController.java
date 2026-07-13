@@ -1,6 +1,5 @@
 package com.tsanet.demo.web;
 
-import com.tsanet.api.TsaNetApiSession;
 import com.tsanet.api.connectapi.dto.AttachmentConfigDto;
 import com.tsanet.api.connectapi.dto.AttachmentForwardResultDto;
 import java.io.IOException;
@@ -19,18 +18,15 @@ import org.springframework.web.multipart.MultipartFile;
 @RestController
 public class AttachmentsController {
 
-    private final TsaNetApiSession session;
     private final SessionGuard guard;
 
-    public AttachmentsController(TsaNetApiSession session, SessionGuard guard) {
-        this.session = session;
+    public AttachmentsController(SessionGuard guard) {
         this.guard = guard;
     }
 
     @GetMapping("/api/requests/{token}/attachments/config")
     public AttachmentConfigDto getConfig(@PathVariable String token) {
-        guard.ensureAuthenticated();
-        return session.attachments().getAttachmentConfig(token);
+        return guard.session().attachments().getAttachmentConfig(token);
     }
 
     @PostMapping("/api/requests/{token}/attachments")
@@ -39,7 +35,7 @@ public class AttachmentsController {
         @RequestParam("description") String description,
         @RequestParam("files") List<MultipartFile> files
     ) {
-        guard.ensureAuthenticated();
+        var session = guard.session();
         List<Path> tempFiles = new ArrayList<>();
         try {
             for (MultipartFile file : files) {

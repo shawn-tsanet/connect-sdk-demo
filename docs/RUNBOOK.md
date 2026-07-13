@@ -36,9 +36,11 @@ Server listens on **http://localhost:8090**. Leave this terminal running; Ctrl+C
 
 ## 3. Enter credentials (first time, or after clearing)
 
-1. Open http://localhost:8090 → **Settings** tab
-2. Enter the BETA member username and password → **Save Credentials**
-3. The header badge should flip to green with your company name (that's `/api/me` succeeding against BETA, `connect2.tsanet.net`)
+1. Open http://localhost:8090 → **Settings** tab — one card per environment (BETA / DEV)
+2. Enter the member username and password on the right card → **Save Credentials**; **Make Active** to switch environments
+3. The header badge should flip to green with your company name (that's `/api/me` succeeding against the active environment)
+
+DEV (`connect2.tahoelab.us`) already has working credentials in the ops `.env` (`TSANET_DEV_API_*`, company 1110 "Test Shawn") plus the loadtest UAT accounts. BETA awaits real member credentials.
 
 Credentials persist to `~/.tsanet-demo-ui/credentials.properties` (mode 600, never in git) — subsequent startups skip this step. **Settings → Clear** wipes them.
 

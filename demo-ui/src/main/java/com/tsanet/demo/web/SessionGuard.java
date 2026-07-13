@@ -2,34 +2,37 @@ package com.tsanet.demo.web;
 
 import com.tsanet.api.TsaNetApiSession;
 import com.tsanet.demo.config.CredentialsStore;
+import com.tsanet.demo.config.EnvironmentService;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ResponseStatusException;
 
 /**
- * Ensures the shared SDK session is logged in before facade calls,
- * using the credentials persisted via the settings UI.
+ * Resolves the active environment's SDK session and ensures it is logged in
+ * before facade calls, using that environment's persisted credentials.
  */
 @Component
 public class SessionGuard {
 
-    private final TsaNetApiSession session;
-    private final CredentialsStore credentialsStore;
+    private final EnvironmentService environments;
 
-    public SessionGuard(TsaNetApiSession session, CredentialsStore credentialsStore) {
-        this.session = session;
-        this.credentialsStore = credentialsStore;
+    public SessionGuard(EnvironmentService environments) {
+        this.environments = environments;
     }
 
-    public void ensureAuthenticated() {
+    /** Authenticated session for the active environment. */
+    public TsaNetApiSession session() {
+        TsaNetApiSession session = environments.currentSession();
         if (session.auth().isAuthorized()) {
-            return;
+            return session;
         }
-        CredentialsStore.Credentials credentials = credentialsStore.load()
+        CredentialsStore.Credentials credentials = environments.currentCredentials().load()
             .orElseThrow(() -> new ResponseStatusException(
                 HttpStatus.PRECONDITION_REQUIRED,
-                "BETA credentials not configured - set them under Settings first"
+                environments.activeDefinition().label()
+                    + " credentials not configured - set them under Settings first"
             ));
         session.auth().login(credentials.username(), credentials.password());
+        return session;
     }
 }
