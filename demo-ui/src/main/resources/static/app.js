@@ -314,18 +314,60 @@ function renderCase(detail) {
     })), 'No responses yet.');
 }
 
+// System-generated notes (e.g. "Case accepted.") arrive with HTML bodies.
+// Render them readably WITHOUT trusting the markup: rebuild only an allowlist
+// of formatting tags as fresh attribute-free nodes; unknown tags are unwrapped
+// to their text. Notes can originate from partner companies — treat as hostile.
+const SAFE_BODY_TAGS = new Set(['P', 'STRONG', 'B', 'EM', 'I', 'U', 'BR', 'UL', 'OL', 'LI']);
+
+function safeBodyNodes(html) {
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    const out = document.createDocumentFragment();
+    (function copy(from, to) {
+        for (const node of from.childNodes) {
+            if (node.nodeType === Node.TEXT_NODE) {
+                to.appendChild(document.createTextNode(node.textContent));
+            } else if (node.nodeType === Node.ELEMENT_NODE) {
+                if (SAFE_BODY_TAGS.has(node.tagName)) {
+                    const el = document.createElement(node.tagName); // no attributes copied
+                    to.appendChild(el);
+                    copy(node, el);
+                } else {
+                    copy(node, to); // unwrap unknown/unsafe tags, keep their text
+                }
+            }
+        }
+    })(doc.body, out);
+    return out;
+}
+
+function looksLikeHtml(text) {
+    return /<\/?[a-z][^>]*>/i.test(text ?? '');
+}
+
 function renderTimeline(hostId, items, emptyText) {
     const host = document.getElementById(hostId);
+    host.innerHTML = '';
     if (!items.length) {
         host.innerHTML = `<p class="muted">${esc(emptyText)}</p>`;
         return;
     }
-    host.innerHTML = items.map(i => `
-        <div class="timeline-item">
+    for (const i of items) {
+        const item = document.createElement('div');
+        item.className = 'timeline-item';
+        item.innerHTML = `
             <div class="t-head"><span class="t-title">${esc(i.title)}</span><span>${esc(i.meta)}</span></div>
-            <div class="t-body">${esc(i.body)}</div>
-        </div>
-    `).join('');
+            <div class="t-body"></div>
+        `;
+        const body = item.querySelector('.t-body');
+        if (looksLikeHtml(i.body)) {
+            body.classList.add('t-body-rich');
+            body.appendChild(safeBodyNodes(i.body));
+        } else {
+            body.textContent = i.body ?? '';
+        }
+        host.appendChild(item);
+    }
 }
 
 // Receiver-side actions (approve/reject/request-info) vs submitter-side

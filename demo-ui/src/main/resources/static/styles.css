@@ -407,6 +407,15 @@ tr.clickable:hover {
     white-space: pre-wrap;
 }
 
+/* HTML note bodies (sanitized): collapse source whitespace, tighten paragraphs */
+.timeline-item .t-body-rich {
+    white-space: normal;
+}
+
+.timeline-item .t-body-rich p {
+    margin: 0.2rem 0;
+}
+
 /* ---------- Action form host ---------- */
 
 #action-form-host {
