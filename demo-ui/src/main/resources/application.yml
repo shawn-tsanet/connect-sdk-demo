@@ -3,7 +3,8 @@ server:
 
 tsanet:
   demo:
-    api-base-url: https://connect2.tsanet.org
+    # BETA. Production is connect2.tsanet.org — never point the demo there.
+    api-base-url: ${TSANET_DEMO_API_BASE_URL:https://connect2.tsanet.net}
     sqlite-path: ${TSANET_DEMO_SQLITE_PATH:${user.home}/.tsanet-demo-ui/data.db}
     credentials-path: ${TSANET_DEMO_CREDENTIALS_PATH:${user.home}/.tsanet-demo-ui/credentials.properties}
     auth:

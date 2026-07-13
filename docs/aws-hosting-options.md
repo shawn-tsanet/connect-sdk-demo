@@ -1,6 +1,6 @@
 # Hosting options for the Connect demo UI
 
-Research only — nothing provisioned. `demo-ui` is a single Spring Boot jar (Tomcat embedded, serves its own static frontend) that calls out to `connect2.tsanet.org` (BETA) over HTTPS. No inbound webhook receiver, no persistent state beyond a local SQLite cache file.
+Research only — nothing provisioned. `demo-ui` is a single Spring Boot jar (Tomcat embedded, serves its own static frontend) that calls out to `connect2.tsanet.net` (BETA) over HTTPS. No inbound webhook receiver, no persistent state beyond a local SQLite cache file.
 
 ## AWS options
 
