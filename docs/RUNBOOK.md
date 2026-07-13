@@ -132,7 +132,11 @@ Container images are managed separately: Console → **ECR** → repositories �
 
 > **Do not delete the service** to turn it off — the public URL is minted per
 > service, so delete + recreate changes the URL everywhere it's been shared.
-> Pause is the off switch.
+> Pause is the off switch. This matters doubly now: App Runner stopped
+> accepting new customers 2026-04-30 (existing services stay operational), so
+> a deleted service may not be recreatable — see the deprecation note in
+> [aws-hosting-options.md](aws-hosting-options.md). Successor when needed:
+> ECS Express Mode, fed by the same ECR image.
 
 ## 7. Shutdown
 

@@ -1,5 +1,14 @@
 # Hosting options for the Connect demo UI
 
+> **Deprecation note (2026-07-13).** AWS stopped accepting new App Runner
+> customers on 2026-04-30; existing services remain operational (security and
+> availability maintained, no new features). The successor is **Amazon ECS
+> Express Mode**, which consumes a pre-built ECR image — exactly this repo's
+> pipeline — so migration is a small config change when warranted. Plan: keep
+> the existing paused service for now; do not build deeper on App Runner
+> features (e.g. custom domains); migrate to ECS Express Mode if the demo
+> becomes long-lived. The recommendation below predates the announcement.
+
 Research only — nothing provisioned. `demo-ui` is a single Spring Boot jar (Tomcat embedded, serves its own static frontend) that calls out to `connect2.tsanet.net` (BETA) over HTTPS. No inbound webhook receiver, no persistent state beyond a local SQLite cache file.
 
 ## AWS options
