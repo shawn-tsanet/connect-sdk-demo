@@ -6,3 +6,6 @@ tsanet:
     api-base-url: https://connect2.tsanet.org
     sqlite-path: ${TSANET_DEMO_SQLITE_PATH:${user.home}/.tsanet-demo-ui/data.db}
     credentials-path: ${TSANET_DEMO_CREDENTIALS_PATH:${user.home}/.tsanet-demo-ui/credentials.properties}
+    auth:
+      username: ${TSANET_DEMO_AUTH_USER:demo}
+      password: ${TSANET_DEMO_AUTH_PASSWORD:}

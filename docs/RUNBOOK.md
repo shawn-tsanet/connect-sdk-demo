@@ -64,9 +64,29 @@ ngrok http 8090
 
 Copy the `https://*.ngrok-free.dev` URL it prints. Caveats (free tier): visitors see a one-click interstitial page first, and the URL changes every restart. Kill with Ctrl+C when the call is done — don't leave the tunnel up unattended.
 
-## 6. Optional: hosted on AWS (not yet built)
+## 6. Optional: hosted on AWS (container ready, service not provisioned)
 
-Decision is on-demand App Runner in `us-west-2` (see [aws-hosting-options.md](aws-hosting-options.md)). The containerization + deploy pipeline hasn't been built yet — when you want it, refresh the CLI session with `aws login` and ask Claude to provision; that session will need a Dockerfile, an ECR repo, and an App Runner service (pause between demos to stop billing).
+Decision is on-demand App Runner in `us-west-2` (see [aws-hosting-options.md](aws-hosting-options.md)). The Dockerfile and Basic-auth gate are built and verified; the ECR repo + App Runner service get created on first deploy day.
+
+**Auth gate** — the app is open when `TSANET_DEMO_AUTH_PASSWORD` is unset (local use). Any hosted deploy MUST set it:
+
+```bash
+TSANET_DEMO_AUTH_USER=<pick>  TSANET_DEMO_AUTH_PASSWORD=<pick>
+```
+
+Visitors then get a browser password prompt before anything loads. `/healthz` stays open for App Runner health checks.
+
+**Build + test the image locally** (jar must be built first, step 1 — the Docker build only packages it):
+
+```bash
+cd /Users/shawnray/projects/shawn-tsanet-connect-sdk-demo
+docker build --platform linux/amd64 -t connect-sdk-demo .
+docker run --rm -p 8090:8090 -e TSANET_DEMO_AUTH_USER=shawn -e TSANET_DEMO_AUTH_PASSWORD=<pick> connect-sdk-demo
+```
+
+(`--platform linux/amd64` is required for App Runner — it does not run arm64 images.)
+
+**Deploy day** (first time): refresh the CLI session with `aws login`, then ask Claude to provision — ECR repo, image push, App Runner service (port 8090, health check `/healthz`, auth env vars). Between demos, pause the service to stop compute billing. Container filesystem is ephemeral: re-enter BETA credentials in Settings after every deploy/resume.
 
 ## 7. Shutdown
 
