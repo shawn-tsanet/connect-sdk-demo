@@ -107,6 +107,33 @@ docker run --rm -p 8090:8090 -e TSANET_DEMO_AUTH_USER=shawn -e TSANET_DEMO_AUTH_
 - The CLI session expires roughly daily — `aws login` (as `tsanet-demo-cli`, incognito if the browser holds a root session) before any of the above.
 - Container filesystem is ephemeral: re-enter member credentials in Settings after every deploy/resume.
 
+### Managing the service in the AWS Console
+
+Everything lives in the App Runner console in **us-west-2 (Oregon)** — check the
+region picker; other regions will show no services. Direct link:
+`https://us-west-2.console.aws.amazon.com/apprunner/home?region=us-west-2#/services`
+→ click `connect-sdk-demo`.
+
+Sign in as **`tsanet-demo-cli`** (its policies cover App Runner, ECR, and logs;
+access-denied banners on unrelated pages are expected). Root is only needed for
+IAM changes.
+
+| Action | Where |
+|---|---|
+| Pause / Resume | **Actions** menu (same effect as the CLI commands above) |
+| Deploy latest image from ECR | **Deploy** button (= `start-deployment`) |
+| Startup/lifecycle events, Spring Boot output | **Logs** tab (Event logs / Application logs via CloudWatch) |
+| Traffic, latency, instance count | **Metrics** tab |
+| Gate env vars, CPU/memory, health check | **Configuration** tab → Edit (any change triggers a redeploy) |
+| Public URL | "Default domain" on the service overview |
+
+Container images are managed separately: Console → **ECR** → repositories →
+`connect-sdk-demo` (same region). App Runner pulls `:latest` on each deploy.
+
+> **Do not delete the service** to turn it off — the public URL is minted per
+> service, so delete + recreate changes the URL everywhere it's been shared.
+> Pause is the off switch.
+
 ## 7. Shutdown
 
 ```bash
