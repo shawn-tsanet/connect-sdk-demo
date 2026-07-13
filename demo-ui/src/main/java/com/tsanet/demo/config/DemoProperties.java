@@ -6,7 +6,6 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 public record DemoProperties(
     String apiBaseUrl,
     String sqlitePath,
-    String username,
-    String password
+    String credentialsPath
 ) {
 }

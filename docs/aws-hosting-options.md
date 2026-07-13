@@ -20,7 +20,11 @@ Research only — nothing provisioned. `demo-ui` is a single Spring Boot jar (To
 - **Railway / Render** — similar "push a repo, get a URL" experience to App Runner, arguably even less config.
 - **Local + tunnel (ngrok/Cloudflare Tunnel)** — zero hosting cost, good for a live walkthrough on a call, not suitable for an always-on link you hand out.
 
-## Open questions for Shawn
+## Decision (2026-07-12): on-demand, not always-on
 
-- Is this demo link something you want live indefinitely (persistent hosting) or only spun up around specific customer/prospect calls (on-demand)?
-- Any preference to keep this inside your existing AWS account (Q4 AWS collaboration-model work) vs. a lighter-weight platform, given it's unrelated to that integration effort?
+Shawn confirmed the demo link doesn't need to stay live between calls — spin it up around specific customer/prospect demos, not a persistent 24/7 URL. That changes the recommendation:
+
+- **App Runner still works**, but use its **pause/resume** capability (via console or `aws apprunner pause-service` / `resume-service`) between demos — paused services incur no compute charges, and resume takes under a minute. This is the best fit if the demo stays inside AWS.
+- **Simpler alternative for pure on-demand use: local + Cloudflare Tunnel (or ngrok).** Run `demo-ui` locally right before a call, point a tunnel at `localhost:8090`, hand out the tunnel URL, kill both when done. Zero hosting cost, zero AWS setup, and matches the actual usage pattern (a handful of scheduled demos) better than any managed hosting tier.
+
+No infrastructure has been provisioned either way — this stays a decision doc until Shawn wants to stand something up for an actual scheduled demo.

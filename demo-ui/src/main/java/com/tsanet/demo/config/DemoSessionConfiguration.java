@@ -16,8 +16,8 @@ public class DemoSessionConfiguration {
         return TsaNetApi.initialize(TsaNetApiConfiguration.of(
             properties.apiBaseUrl(),
             properties.sqlitePath(),
-            properties.username(),
-            properties.password()
+            null,
+            null
         ));
     }
 }

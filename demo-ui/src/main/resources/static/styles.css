@@ -43,6 +43,22 @@ body {
     opacity: 0.85;
 }
 
+.badge {
+    margin-left: auto;
+    padding: 0.3rem 0.75rem;
+    border-radius: 999px;
+    font-size: 0.8rem;
+    background: rgba(255, 255, 255, 0.15);
+}
+
+.badge.configured {
+    background: #2e7d32;
+}
+
+.badge.not-configured {
+    background: #b3541e;
+}
+
 main {
     max-width: 960px;
     margin: 2rem auto;
@@ -101,6 +117,19 @@ button {
 
 button:hover {
     background: var(--tsanet-blue);
+}
+
+button.secondary {
+    background: #8b98a3;
+}
+
+button.secondary:hover {
+    background: #6d7a85;
+}
+
+.button-row {
+    display: flex;
+    gap: 0.5rem;
 }
 
 .status {
