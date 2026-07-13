@@ -88,7 +88,24 @@ docker run --rm -p 8090:8090 -e TSANET_DEMO_AUTH_USER=shawn -e TSANET_DEMO_AUTH_
 
 (`--platform linux/amd64` is required for App Runner — it does not run arm64 images.)
 
-**Deploy day** (first time): refresh the CLI session with `aws login`, then ask Claude to provision — ECR repo, image push, App Runner service (port 8090, health check `/healthz`, auth env vars). Between demos, pause the service to stop compute billing. Container filesystem is ephemeral: re-enter BETA credentials in Settings after every deploy/resume.
+**Provisioned 2026-07-13** (verified end-to-end, normally kept PAUSED):
+
+- Service URL: `https://zzp9cuim4t.us-west-2.awsapprunner.com` (gate user `shawn`; password in `~/.tsanet-demo-ui/apprunner-gate-password.txt`)
+- Resume before a demo (takes ~1 min), pause after — paused = no compute billing:
+  ```bash
+  aws apprunner resume-service --service-arn arn:aws:apprunner:us-west-2:806878963871:service/connect-sdk-demo/babbd4a41c474a5190dee635a9332193
+  aws apprunner pause-service  --service-arn arn:aws:apprunner:us-west-2:806878963871:service/connect-sdk-demo/babbd4a41c474a5190dee635a9332193
+  ```
+- Ship a new build: rebuild the jar (step 1), then
+  ```bash
+  docker build --platform linux/amd64 -t connect-sdk-demo .
+  aws ecr get-login-password | docker login --username AWS --password-stdin 806878963871.dkr.ecr.us-west-2.amazonaws.com
+  docker tag connect-sdk-demo:latest 806878963871.dkr.ecr.us-west-2.amazonaws.com/connect-sdk-demo:latest
+  docker push 806878963871.dkr.ecr.us-west-2.amazonaws.com/connect-sdk-demo:latest
+  aws apprunner start-deployment --service-arn arn:aws:apprunner:us-west-2:806878963871:service/connect-sdk-demo/babbd4a41c474a5190dee635a9332193
+  ```
+- The CLI session expires roughly daily — `aws login` (as `tsanet-demo-cli`, incognito if the browser holds a root session) before any of the above.
+- Container filesystem is ephemeral: re-enter member credentials in Settings after every deploy/resume.
 
 ## 7. Shutdown
 
