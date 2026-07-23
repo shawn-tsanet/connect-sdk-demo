@@ -10,7 +10,27 @@ public record DemoProperties(
     String dataDir
 ) {
 
-    public record EnvironmentDef(String label, String apiBaseUrl) {
+    /**
+     * One Connect environment. The Entra tenant and audience are fixed per
+     * environment (config, not user input), so an operator choosing OAuth mode
+     * only ever enters the member's client id and secret.
+     */
+    public record EnvironmentDef(String label, String apiBaseUrl, String entraTenantId, String entraAudience) {
+
+        /** True when this environment is configured for OAuth client-credentials logins. */
+        public boolean oauthAvailable() {
+            return entraTenantId != null && !entraTenantId.isBlank()
+                && entraAudience != null && !entraAudience.isBlank();
+        }
+
+        public String oauthTokenUrl() {
+            return "https://login.microsoftonline.com/" + entraTenantId + "/oauth2/v2.0/token";
+        }
+
+        /** Bare {@code {audience}/.default} form; the api:// prefix is rejected for the Connect audience. */
+        public String oauthScope() {
+            return entraAudience + "/.default";
+        }
     }
 
     public EnvironmentDef require(String key) {

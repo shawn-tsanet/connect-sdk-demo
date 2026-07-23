@@ -1,5 +1,6 @@
 package com.tsanet.api.internal;
 
+import com.tsanet.api.OAuthClientCredentials;
 import com.tsanet.api.TsaNetApiConfiguration;
 import com.tsanet.api.TsaNetApiSession;
 import com.tsanet.api.connectapi.dto.AttachmentConfigDto;
@@ -31,6 +32,8 @@ import com.tsanet.api.connectapi.internal.ConnectApiResponsesGateway;
 import com.tsanet.api.connectapi.internal.ConnectApiSessionStore;
 import com.tsanet.api.connectapi.internal.ConnectApiUserGateway;
 import com.tsanet.api.connectapi.internal.ConnectApiWebhooksGateway;
+import com.tsanet.api.connectapi.internal.EntraClientCredentialsGateway;
+import com.tsanet.api.connectapi.internal.OAuthTokenSupplier;
 import com.tsanet.api.facade.AttachmentsFacade;
 import com.tsanet.api.facade.AuthFacade;
 import com.tsanet.api.facade.CaseNotesFacade;
@@ -65,6 +68,7 @@ final class DefaultTsaNetApiSession implements TsaNetApiSession, AuthFacade, Col
     private final TsaNetApiConfiguration configuration;
     private final ConnectApiSessionStore sessionStore;
     private final ConnectApiAuthGateway authGateway;
+    private final EntraClientCredentialsGateway oauthGateway;
     private final ConnectApiCollaborationGateway collaborationGateway;
     private final ConnectApiFormGateway formGateway;
     private final ConnectApiNotesGateway notesGateway;
@@ -89,6 +93,7 @@ final class DefaultTsaNetApiSession implements TsaNetApiSession, AuthFacade, Col
         TsaNetApiConfiguration configuration,
         ConnectApiSessionStore sessionStore,
         ConnectApiAuthGateway authGateway,
+        EntraClientCredentialsGateway oauthGateway,
         ConnectApiCollaborationGateway collaborationGateway,
         ConnectApiFormGateway formGateway,
         ConnectApiNotesGateway notesGateway,
@@ -111,6 +116,7 @@ final class DefaultTsaNetApiSession implements TsaNetApiSession, AuthFacade, Col
         this.configuration = configuration;
         this.sessionStore = sessionStore;
         this.authGateway = authGateway;
+        this.oauthGateway = oauthGateway;
         this.collaborationGateway = collaborationGateway;
         this.formGateway = formGateway;
         this.notesGateway = notesGateway;
@@ -186,7 +192,22 @@ final class DefaultTsaNetApiSession implements TsaNetApiSession, AuthFacade, Col
     }
 
     @Override
+    public String loginWithClientCredentials(OAuthClientCredentials credentials) {
+        EntraClientCredentialsGateway.TokenResponse token = oauthGateway.fetchToken(credentials);
+        sessionStore.saveOAuth(
+            credentials.clientId(),
+            token.accessToken(),
+            OAuthTokenSupplier.expiresAt(token.expiresInSeconds()),
+            credentials
+        );
+        return token.accessToken();
+    }
+
+    @Override
     public String loginWithConfiguredCredentials() {
+        if (configuration.oauth() != null) {
+            return loginWithClientCredentials(configuration.oauth());
+        }
         if (configuration.username() == null || configuration.username().isBlank()
             || configuration.password() == null || configuration.password().isBlank()) {
             throw new IllegalStateException("Configured username and password are required");
