@@ -1,2 +1,5 @@
 .idea
 target
+
+# Local, environment-specific runbook values (never commit)
+*.local.md

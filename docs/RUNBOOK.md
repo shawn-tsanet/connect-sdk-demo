@@ -1,20 +1,36 @@
 # Demo startup runbook
 
-How to bring the Connect SDK Demo up from cold, once you have BETA member credentials. All paths are absolute; every command is copy-paste-ready.
+How to bring the Connect SDK Demo up from cold, once you have BETA member credentials.
 
-## One-time prerequisites (already done on the Mac mini)
+## Conventions
 
-- JDK 21 (Homebrew, keg-only — hence the `JAVA_HOME` pin below)
-- Sibling spec repo at `~/projects/Connect-API-Code` with the **`beta` branch** checked out (the `develop` branch breaks the build — V2 webhook APIs)
+Commands use placeholders for anything environment-specific. Substitute your own values:
+
+| Placeholder | Meaning |
+|---|---|
+| `<REPO_ROOT>` | Parent directory holding your checkouts (this repo and the sibling spec repo) |
+| `<DEMO_REPO>` | This repo's checkout, i.e. `<REPO_ROOT>/connect-sdk-demo` |
+| `<JAVA_21_HOME>` | Your JDK 21 install (e.g. Homebrew keg-only `openjdk@21`) |
+| `<AWS_ACCOUNT_ID>`, `<REGION>` | Your AWS account and region (deploy default region: `us-west-2`) |
+| `<AWS_CLI_PROFILE>` | The AWS CLI profile/user with App Runner + ECR + logs access |
+| `<SERVICE_ARN>`, `<SERVICE_URL>` | Your provisioned App Runner service ARN and public URL |
+| `<ECR_REGISTRY>` | `<AWS_ACCOUNT_ID>.dkr.ecr.<REGION>.amazonaws.com` |
+
+Keep your real values in a local, untracked file (e.g. `docs/RUNBOOK.local.md`) or your `.env` — never commit them.
+
+## One-time prerequisites
+
+- JDK 21 (a keg-only Homebrew `openjdk@21` needs the `JAVA_HOME` pin below)
+- Sibling spec repo at `<REPO_ROOT>/Connect-API-Code` with the **`beta` branch** checked out (the `develop` branch breaks the build — V2 webhook APIs)
 - ngrok installed and authenticated (only needed for sharing a public URL)
-- AWS CLI configured as `tsanet-demo-cli` (only needed for hosted deploys — nothing provisioned yet)
+- AWS CLI configured with a deploy profile (only needed for hosted deploys)
 
 ## 1. Build (skip if no code changed since last build)
 
 ```bash
-export JAVA_HOME=/opt/homebrew/opt/openjdk@21
+export JAVA_HOME=<JAVA_21_HOME>
 export PATH="$JAVA_HOME/bin:$PATH"
-cd /Users/shawnray/projects/shawn-tsanet-connect-sdk-demo
+cd <DEMO_REPO>
 mvn -q -pl connect-library -am install -DskipTests
 mvn -q -pl demo-ui -am package -DskipTests
 ```
@@ -22,14 +38,14 @@ mvn -q -pl demo-ui -am package -DskipTests
 If the build fails with `cannot find symbol ... WebhooksApi`, the sibling spec repo is on the wrong branch:
 
 ```bash
-cd /Users/shawnray/projects/Connect-API-Code && git checkout beta
+cd <REPO_ROOT>/Connect-API-Code && git checkout beta
 ```
 
 ## 2. Start the server
 
 ```bash
-export JAVA_HOME=/opt/homebrew/opt/openjdk@21
-"$JAVA_HOME/bin/java" -jar /Users/shawnray/projects/shawn-tsanet-connect-sdk-demo/demo-ui/target/demo-ui-0.0.1-SNAPSHOT.jar
+export JAVA_HOME=<JAVA_21_HOME>
+"$JAVA_HOME/bin/java" -jar <DEMO_REPO>/demo-ui/target/demo-ui-0.0.1-SNAPSHOT.jar
 ```
 
 Server listens on **http://localhost:8090**. Leave this terminal running; Ctrl+C stops it.
@@ -40,14 +56,14 @@ Server listens on **http://localhost:8090**. Leave this terminal running; Ctrl+C
 2. Enter the member username and password on the right card → **Save Credentials**; **Make Active** to switch environments
 3. The header badge should flip to green with your company name (that's `/api/me` succeeding against the active environment)
 
-DEV (`connect2.tahoelab.us`) already has working credentials in the ops `.env` (`TSANET_DEV_API_*`, company 1110 "Test Shawn") plus the loadtest UAT accounts. BETA awaits real member credentials.
+Point each environment card at a member account you control on that environment. For bidirectional testing you need two member companies that are partnered with published process forms (each can search and submit to the other). Store their credentials in your own `.env`/credential store, not in this repo.
 
 Credentials persist to `~/.tsanet-demo-ui/credentials.properties` (mode 600, never in git) — subsequent startups skip this step. **Settings → Clear** wipes them.
 
 Badge decoder:
 - **Green "Company — email"** — authenticated, everything live
 - **Amber "Not configured"** — no credentials saved yet
-- **Amber "Auth failed: Connect API returned 500 — Error processing request"** — BETA rejected the credentials (its legacy error mode returns 500, not 401; wrong password looks like this)
+- **Amber "Auth failed: Connect API returned 500 — Error processing request"** — the environment rejected the credentials (BETA's legacy error mode returns 500, not 401; a wrong password looks like this)
 
 ## 4. First-session verification sweep (once, with the first real credentials)
 
@@ -56,7 +72,7 @@ Two things were built against assumptions that need one live payload to confirm 
 1. **New Collaboration** → search a partner → select → check the process form: do dropdowns show one option per line (options delimiter), and do all field types render as sensible inputs?
 2. **Case detail** on any existing case → do the lifecycle action buttons match what the case state actually allows?
 
-Report anomalies to Claude — the fixes are one-liners in `app.js` field-type mapping.
+Report anomalies — the fixes are typically one-liners in `app.js` field-type mapping.
 
 ## 5. Optional: public URL for a live demo (ngrok)
 
@@ -66,9 +82,9 @@ ngrok http 8090
 
 Copy the `https://*.ngrok-free.dev` URL it prints. Caveats (free tier): visitors see a one-click interstitial page first, and the URL changes every restart. Kill with Ctrl+C when the call is done — don't leave the tunnel up unattended.
 
-## 6. Optional: hosted on AWS (container ready, service not provisioned)
+## 6. Optional: hosted on AWS
 
-Decision is on-demand App Runner in `us-west-2` (see [aws-hosting-options.md](aws-hosting-options.md)). The Dockerfile and Basic-auth gate are built and verified; the ECR repo + App Runner service get created on first deploy day.
+Decision is on-demand App Runner (see [aws-hosting-options.md](aws-hosting-options.md)). The Dockerfile and Basic-auth gate are built and verified.
 
 **Auth gate** — the app is open when `TSANET_DEMO_AUTH_PASSWORD` is unset (local use). Any hosted deploy MUST set it:
 
@@ -81,42 +97,42 @@ Visitors then get a browser password prompt before anything loads. `/healthz` st
 **Build + test the image locally** (jar must be built first, step 1 — the Docker build only packages it):
 
 ```bash
-cd /Users/shawnray/projects/shawn-tsanet-connect-sdk-demo
+cd <DEMO_REPO>
 docker build --platform linux/amd64 -t connect-sdk-demo .
-docker run --rm -p 8090:8090 -e TSANET_DEMO_AUTH_USER=shawn -e TSANET_DEMO_AUTH_PASSWORD=<pick> connect-sdk-demo
+docker run --rm -p 8090:8090 -e TSANET_DEMO_AUTH_USER=<pick> -e TSANET_DEMO_AUTH_PASSWORD=<pick> connect-sdk-demo
 ```
 
 (`--platform linux/amd64` is required for App Runner — it does not run arm64 images.)
 
-**Provisioned 2026-07-13** (verified end-to-end, normally kept PAUSED):
+**Operating a provisioned service** (normally kept PAUSED — paused = no compute billing):
 
-- Service URL: `https://zzp9cuim4t.us-west-2.awsapprunner.com` (gate user `shawn`; password in `~/.tsanet-demo-ui/apprunner-gate-password.txt`)
-- Resume before a demo (takes ~1 min), pause after — paused = no compute billing:
+- Service URL: `<SERVICE_URL>` (gate user + password are per-deploy; keep them in your local untracked notes)
+- Resume before a demo (takes ~1 min), pause after:
   ```bash
-  aws apprunner resume-service --service-arn arn:aws:apprunner:us-west-2:806878963871:service/connect-sdk-demo/babbd4a41c474a5190dee635a9332193
-  aws apprunner pause-service  --service-arn arn:aws:apprunner:us-west-2:806878963871:service/connect-sdk-demo/babbd4a41c474a5190dee635a9332193
+  aws apprunner resume-service --service-arn <SERVICE_ARN>
+  aws apprunner pause-service  --service-arn <SERVICE_ARN>
   ```
 - Ship a new build: rebuild the jar (step 1), then
   ```bash
   docker build --platform linux/amd64 -t connect-sdk-demo .
-  aws ecr get-login-password | docker login --username AWS --password-stdin 806878963871.dkr.ecr.us-west-2.amazonaws.com
-  docker tag connect-sdk-demo:latest 806878963871.dkr.ecr.us-west-2.amazonaws.com/connect-sdk-demo:latest
-  docker push 806878963871.dkr.ecr.us-west-2.amazonaws.com/connect-sdk-demo:latest
-  aws apprunner start-deployment --service-arn arn:aws:apprunner:us-west-2:806878963871:service/connect-sdk-demo/babbd4a41c474a5190dee635a9332193
+  aws ecr get-login-password --region <REGION> | docker login --username AWS --password-stdin <ECR_REGISTRY>
+  docker tag connect-sdk-demo:latest <ECR_REGISTRY>/connect-sdk-demo:latest
+  docker push <ECR_REGISTRY>/connect-sdk-demo:latest
+  aws apprunner start-deployment --service-arn <SERVICE_ARN>
   ```
-- The CLI session expires roughly daily — `aws login` (as `tsanet-demo-cli`, incognito if the browser holds a root session) before any of the above.
+- The AWS CLI session may expire (roughly daily) — re-authenticate your `<AWS_CLI_PROFILE>` before any of the above.
 - Container filesystem is ephemeral: re-enter member credentials in Settings after every deploy/resume.
 
 ### Managing the service in the AWS Console
 
-Everything lives in the App Runner console in **us-west-2 (Oregon)** — check the
-region picker; other regions will show no services. Direct link:
-`https://us-west-2.console.aws.amazon.com/apprunner/home?region=us-west-2#/services`
-→ click `connect-sdk-demo`.
+Everything lives in the App Runner console in your deploy region (check the
+region picker; other regions show no services):
+`https://<REGION>.console.aws.amazon.com/apprunner/home?region=<REGION>#/services`
+→ click your service.
 
-Sign in as **`tsanet-demo-cli`** (its policies cover App Runner, ECR, and logs;
-access-denied banners on unrelated pages are expected). Root is only needed for
-IAM changes.
+Sign in with your deploy profile (`<AWS_CLI_PROFILE>`) — its policies cover App
+Runner, ECR, and logs; access-denied banners on unrelated pages are expected.
+Root/admin is only needed for IAM changes.
 
 | Action | Where |
 |---|---|
