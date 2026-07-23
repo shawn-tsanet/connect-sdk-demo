@@ -12,6 +12,8 @@ import com.tsanet.api.connectapi.internal.ConnectApiResponsesGateway;
 import com.tsanet.api.connectapi.internal.ConnectApiSessionStore;
 import com.tsanet.api.connectapi.internal.ConnectApiUserGateway;
 import com.tsanet.api.connectapi.internal.ConnectApiWebhooksGateway;
+import com.tsanet.api.connectapi.internal.EntraClientCredentialsGateway;
+import com.tsanet.api.connectapi.internal.OAuthTokenSupplier;
 import com.tsanet.api.generated.api.CaseAttachmentsApi;
 import com.tsanet.api.generated.api.CaseNotesApi;
 import com.tsanet.api.generated.api.CaseResponsesApi;
@@ -54,10 +56,13 @@ public final class TsaNetApiRuntime {
 
     public static TsaNetApiSession create(TsaNetApiConfiguration configuration) {
         ConnectApiSessionStore sessionStore = new ConnectApiSessionStore();
+        EntraClientCredentialsGateway oauthGateway = new EntraClientCredentialsGateway();
 
         ApiClient apiClient = new ApiClient();
         apiClient.setBasePath(configuration.apiBaseUrl());
-        apiClient.setBearerToken(() -> sessionStore.getBearerToken().orElse(null));
+        // Expiry-aware supplier: a plain pass-through in password mode; in OAuth
+        // client-credentials mode it transparently re-mints before expiry.
+        apiClient.setBearerToken(new OAuthTokenSupplier(sessionStore, oauthGateway));
 
         IdentityApi identityApi = new IdentityApi(apiClient);
         CollaborationRequestsApi collaborationRequestsApi = new CollaborationRequestsApi(apiClient);
@@ -147,6 +152,7 @@ public final class TsaNetApiRuntime {
             configuration,
             sessionStore,
             authGateway,
+            oauthGateway,
             collaborationGateway,
             formGateway,
             notesGateway,

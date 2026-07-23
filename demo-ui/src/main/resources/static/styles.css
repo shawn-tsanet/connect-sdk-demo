@@ -211,6 +211,23 @@ select {
     gap: 0 1rem;
 }
 
+/* The hidden attribute must beat .form-grid's display:grid. */
+[hidden] {
+    display: none !important;
+}
+
+.mode-row {
+    display: flex;
+    gap: 1.25rem;
+    margin-bottom: 0.5rem;
+}
+
+.mode-row label {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
 .inline-form {
     display: flex;
     gap: 0.5rem;

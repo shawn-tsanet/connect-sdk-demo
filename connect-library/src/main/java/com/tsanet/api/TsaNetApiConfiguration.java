@@ -4,7 +4,8 @@ public record TsaNetApiConfiguration(
     String apiBaseUrl,
     String sqlitePath,
     String username,
-    String password
+    String password,
+    OAuthClientCredentials oauth
 ) {
     public TsaNetApiConfiguration {
         if (apiBaseUrl == null || apiBaseUrl.isBlank()) {
@@ -16,6 +17,14 @@ public record TsaNetApiConfiguration(
     }
 
     public static TsaNetApiConfiguration of(String apiBaseUrl, String sqlitePath, String username, String password) {
-        return new TsaNetApiConfiguration(apiBaseUrl, sqlitePath, username, password);
+        return new TsaNetApiConfiguration(apiBaseUrl, sqlitePath, username, password, null);
+    }
+
+    /** OAuth client-credentials mode: no static username/password, tokens minted from the IdP. */
+    public static TsaNetApiConfiguration ofOAuth(String apiBaseUrl, String sqlitePath, OAuthClientCredentials oauth) {
+        if (oauth == null) {
+            throw new IllegalArgumentException("oauth configuration is required");
+        }
+        return new TsaNetApiConfiguration(apiBaseUrl, sqlitePath, null, null, oauth);
     }
 }

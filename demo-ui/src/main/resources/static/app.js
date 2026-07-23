@@ -112,18 +112,31 @@ function renderEnvSettings() {
                 <span class="env-name">${esc(env.label)}</span>
                 <span class="env-url">${esc(env.apiBaseUrl)}</span>
                 ${env.configured
-                    ? chipHtml(`credentials: ${env.username}`, 'st-approved')
+                    ? chipHtml(`credentials: ${env.username}${env.mode === 'oauth' ? ' (OAuth)' : ''}`, 'st-approved')
                     : chipHtml('no credentials', 'st-pending')}
                 <span class="spacer"></span>
                 ${isActive ? chipHtml('ACTIVE', 'outbound') : ''}
             </div>
             <form class="env-cred-form" data-env="${esc(env.key)}">
-                <div class="form-grid">
+                ${env.oauthAvailable ? `
+                <div class="mode-row">
+                    <label><input type="radio" name="mode" value="password" ${env.mode !== 'oauth' ? 'checked' : ''}> Password</label>
+                    <label><input type="radio" name="mode" value="oauth" ${env.mode === 'oauth' ? 'checked' : ''}> OAuth (client credentials)</label>
+                </div>` : ''}
+                <div class="form-grid mode-password" ${env.mode === 'oauth' ? 'hidden' : ''}>
                     <label>Username
-                        <input type="text" name="username" autocomplete="off" required>
+                        <input type="text" name="username" autocomplete="off">
                     </label>
                     <label>Password
-                        <input type="password" name="password" autocomplete="off" required>
+                        <input type="password" name="password" autocomplete="off">
+                    </label>
+                </div>
+                <div class="form-grid mode-oauth" ${env.mode === 'oauth' ? '' : 'hidden'}>
+                    <label>Client ID
+                        <input type="text" name="clientId" autocomplete="off">
+                    </label>
+                    <label>Client Secret
+                        <input type="password" name="clientSecret" autocomplete="off">
                     </label>
                 </div>
                 <div class="button-row">
@@ -137,6 +150,13 @@ function renderEnvSettings() {
     }
     host.querySelectorAll('.env-cred-form').forEach(form =>
         form.addEventListener('submit', onSaveEnvCredentials));
+    host.querySelectorAll('.env-cred-form input[name="mode"]').forEach(radio =>
+        radio.addEventListener('change', event => {
+            const form = event.target.closest('form');
+            const oauth = form.mode.value === 'oauth';
+            form.querySelector('.mode-password').hidden = oauth;
+            form.querySelector('.mode-oauth').hidden = !oauth;
+        }));
     host.querySelectorAll('.env-clear-btn').forEach(btn =>
         btn.addEventListener('click', () => onClearEnvCredentials(btn.dataset.env)));
     host.querySelectorAll('.env-switch-btn').forEach(btn =>
@@ -153,10 +173,14 @@ async function onSaveEnvCredentials(event) {
     const status = document.getElementById('settings-status');
     status.textContent = 'Saving...';
     try {
+        const mode = form.mode && form.mode.value === 'oauth' ? 'oauth' : 'password';
+        const body = mode === 'oauth'
+            ? {mode, clientId: form.clientId.value, clientSecret: form.clientSecret.value}
+            : {mode, username: form.username.value, password: form.password.value};
         await fetchJson(`/api/settings/${encodeURIComponent(form.dataset.env)}/credentials`, {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({username: form.username.value, password: form.password.value}),
+            body: JSON.stringify(body),
         });
         status.textContent = 'Credentials saved.';
         await refreshIdentity();

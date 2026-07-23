@@ -32,7 +32,9 @@ public class SettingsController {
                     e.getValue().label(),
                     e.getValue().apiBaseUrl(),
                     creds.isPresent(),
-                    creds.map(CredentialsStore.Credentials::username).orElse(null)
+                    creds.map(CredentialsStore.Credentials::principal).orElse(null),
+                    creds.map(CredentialsStore.Credentials::mode).orElse(null),
+                    e.getValue().oauthAvailable()
                 );
             })
             .toList();
@@ -51,17 +53,37 @@ public class SettingsController {
 
     @PostMapping("/api/settings/{env}/credentials")
     public SettingsStatus saveCredentials(@PathVariable String env, @RequestBody SaveCredentialsBody body) {
-        if (body.username() == null || body.username().isBlank()
-            || body.password() == null || body.password().isBlank()) {
+        boolean oauth = CredentialsStore.MODE_OAUTH.equals(body.mode());
+        if (oauth) {
+            if (isBlank(body.clientId()) || isBlank(body.clientSecret())) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "clientId and clientSecret are required");
+            }
+        } else if (isBlank(body.username()) || isBlank(body.password())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "username and password are required");
         }
         try {
-            environments.credentialsFor(env).save(body.username(), body.password());
+            if (oauth) {
+                var def = environments.environments().get(env);
+                if (def == null) {
+                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Unknown environment: " + env);
+                }
+                if (!def.oauthAvailable()) {
+                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                        "OAuth is not configured for environment " + env);
+                }
+                environments.credentialsFor(env).saveOAuth(body.clientId(), body.clientSecret());
+            } else {
+                environments.credentialsFor(env).save(body.username(), body.password());
+            }
         } catch (IllegalArgumentException e) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
         }
         environments.sessionFor(env).auth().logout();
         return getSettings();
+    }
+
+    private static boolean isBlank(String value) {
+        return value == null || value.isBlank();
     }
 
     @DeleteMapping("/api/settings/{env}/credentials")
@@ -78,7 +100,9 @@ public class SettingsController {
     public record SwitchBody(String environment) {
     }
 
-    public record SaveCredentialsBody(String username, String password) {
+    /** {@code mode} is "password" (default when absent) or "oauth". */
+    public record SaveCredentialsBody(String mode, String username, String password,
+                                      String clientId, String clientSecret) {
     }
 
     public record EnvironmentStatus(
@@ -86,7 +110,9 @@ public class SettingsController {
         String label,
         String apiBaseUrl,
         boolean configured,
-        String username
+        String username,
+        String mode,
+        boolean oauthAvailable
     ) {
     }
 
